@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/www.northwest-cc.org/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/www.northwest-cc.org/$1"
+    }
+  ]
+}
