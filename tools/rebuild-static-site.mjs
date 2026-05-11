@@ -136,6 +136,27 @@ function renderRichLines(lines, options = {}) {
     .join("\n");
 }
 
+function updatesSectionHtml(updateLines) {
+  const fullInner = renderRichLines(updateLines.slice(1), { compact: true });
+  return `
+    <section class="section updates-section">
+      <button type="button" class="updates-teaser reveal" id="updates-teaser-open" aria-expanded="false" aria-haspopup="dialog" aria-label="Open full important updates notice">
+        <span class="updates-teaser-eyebrow eyebrow">Important updates</span>
+        <strong class="updates-teaser-headline">Chamber Saturday schedule and new Korean language course</strong>
+        <ul class="updates-teaser-list">
+          <li><span class="updates-teaser-label">Practice</span> No group Feb&nbsp;14; Apr&nbsp;4 TBD by survey; no practice Apr&nbsp;11 (spring break).</li>
+          <li><span class="updates-teaser-label">Korean</span> Small-group STAMP prep with certified instruction and Level&nbsp;4 TAs—additional proficiency levels welcome.</li>
+        </ul>
+        <span class="updates-teaser-cta">View full notice</span>
+      </button>
+      <template id="updates-full-template">
+        <div class="updates-zoom-inner">
+${fullInner}
+        </div>
+      </template>
+    </section>`;
+}
+
 function articleBody(rel, title) {
   const lines = cleanLines(rel);
   const upperTitle = title.toUpperCase();
@@ -329,12 +350,7 @@ function buildHome() {
         ${stat("Focus", "Music + Education")}
       </div>
     </section>
-    <section class="section split-section">
-      <div class="section-kicker">Important updates</div>
-      <div class="feature-panel reveal">
-        ${renderRichLines(updateLines.slice(1), { compact: true })}
-      </div>
-    </section>
+    ${updatesSectionHtml(updateLines)}
     <section class="section">
       <div class="section-heading">
         <p class="eyebrow">Announcements</p>
@@ -460,22 +476,126 @@ function buildProjects() {
 }
 
 function buildGallery() {
-  const galleryImages = nonLogoImages("gallery.html");
-  const lines = cleanLines("gallery.html");
-  const teamIndex = lines.indexOf("Teaching Team");
-  const text = lines.slice(teamIndex).filter((line) => !["Gallery", "Chamber/Teaching Team/Tech Team", "Chamber"].includes(line));
+  const im = nonLogoImages("gallery.html");
+  const tile = (index, alt) => {
+    const img = im[index];
+    if (!img) return "";
+    const label = alt || img.alt || "NWCC gallery photo";
+    return `<button class="gallery-tile" type="button"><img src="${esc(img.src)}" alt="${esc(label)}" loading="lazy"></button>`;
+  };
+
   const body = `
     <section class="page-title">
       <p class="eyebrow">Photos</p>
       <h1>Gallery</h1>
       <p>Chamber, teaching team, technology team, and volunteer moments from NWCC programs.</p>
     </section>
-    <section class="section">
-      <div class="gallery-masonry">${galleryImages.map((img) => `<button class="gallery-tile" type="button"><img src="${esc(img.src)}" alt="${esc(img.alt || "NWCC gallery photo")}" loading="lazy"></button>`).join("")}</div>
-    </section>
-    <section class="section compact-info">
-      ${renderRichLines(text)}
-    </section>`;
+    <div class="gallery-shell">
+      <section class="gallery-layout-block gallery-chamber-block" aria-labelledby="gallery-chamber-title">
+        <h2 id="gallery-chamber-title" class="gallery-section-title">Chamber</h2>
+        <div class="gallery-chamber-grid">
+          ${tile(0, "Chamber ensemble rehearsal")}
+          ${tile(1, "Chamber ensemble rehearsal")}
+          ${tile(2, "Chamber ensemble rehearsal")}
+          ${tile(3, "Chamber ensemble rehearsal")}
+        </div>
+        <div class="gallery-hero-wrap">
+          ${tile(4, "Chamber group performance rehearsal")}
+        </div>
+        <div class="gallery-video-row">
+          <div class="gallery-video-cell gallery-play-overlay">
+            ${tile(5, "Chamber practice video still")}
+            <span class="gallery-play-dot" aria-hidden="true"></span>
+            <span class="gallery-play-triangle" aria-hidden="true"></span>
+          </div>
+          <div class="gallery-video-cell gallery-play-overlay">
+            ${tile(6, "Chamber practice video still")}
+            <span class="gallery-play-dot" aria-hidden="true"></span>
+            <span class="gallery-play-triangle" aria-hidden="true"></span>
+          </div>
+        </div>
+      </section>
+
+      <section id="teaching-team" class="gallery-layout-block gallery-teaching-head" aria-labelledby="gallery-teaching-title">
+        <h2 id="gallery-teaching-title" class="gallery-section-title">Teaching Team</h2>
+        <nav class="gallery-team-tabs" aria-label="Teaching team subjects">
+          <a class="gallery-tab is-active" href="#math-1">Math 1</a>
+          <a class="gallery-tab" href="#math-2">Math 2</a>
+          <a class="gallery-tab" href="#writing">Writing</a>
+          <a class="gallery-tab" href="#spanish">Spanish</a>
+          <a class="gallery-tab" href="#book-club">Book Club</a>
+        </nav>
+      </section>
+
+      <section id="math-1" class="gallery-layout-block gallery-math1-block" aria-labelledby="gallery-math1-title">
+        <h3 id="gallery-math1-title" class="gallery-subsection-title">Math 1</h3>
+        <div class="gallery-math1-top">
+          ${tile(7, "Math 1 tutoring session")}
+          ${tile(8, "Math 1 tutoring session")}
+        </div>
+        <div class="gallery-math1-bottom">
+          ${tile(9, "Math 1 group at tables")}
+          ${tile(10, "Math 1 classroom")}
+        </div>
+        <p class="gallery-instructors">Volunteer Instructors: Eliana Lee, Ryan Pan</p>
+      </section>
+
+      <section id="math-2" class="gallery-layout-block gallery-math2-block" aria-labelledby="gallery-math2-title">
+        <h3 id="gallery-math2-title" class="gallery-subsection-title">Math 2</h3>
+        <div class="gallery-math2-row">
+          ${tile(11, "Math 2 students at whiteboard")}
+          ${tile(12, "Math 2 group work")}
+        </div>
+        <p class="gallery-instructors gallery-instructors-between">Volunteer Instructors: Christopher Chae, Tianyi Yang, Jun</p>
+        <div class="gallery-math2-row">
+          ${tile(13, "Math 2 classroom")}
+          ${tile(14, "Math 2 whiteboard equations")}
+        </div>
+      </section>
+
+      <section id="writing" class="gallery-layout-block gallery-writing-block" aria-labelledby="gallery-writing-title">
+        <h3 id="gallery-writing-title" class="gallery-subsection-title">Writing</h3>
+        <div class="gallery-writing-single">
+          ${tile(15, "Writing program small group")}
+        </div>
+        <p class="gallery-instructors">Volunteer Instructors: Juhee Jang, Gracy Yoo, Angela Kim</p>
+      </section>
+
+      <section id="spanish" class="gallery-layout-block gallery-spanish-block" aria-labelledby="gallery-spanish-title">
+        <h3 id="gallery-spanish-title" class="gallery-subsection-title">Spanish</h3>
+        <div class="gallery-spanish-hero">
+          ${tile(16, "Spanish class session")}
+        </div>
+        <div class="gallery-math2-row">
+          ${tile(17, "Spanish study group")}
+          ${tile(18, "Spanish class at whiteboard")}
+        </div>
+        <p class="gallery-instructors">Volunteer Instructors: Cheon-Hee Park, Luke, Andrew</p>
+        <div class="gallery-spanish-wide">
+          ${tile(19, "Spanish program classroom")}
+        </div>
+      </section>
+
+      <section id="book-club" class="gallery-layout-block gallery-bookclub-block" aria-labelledby="gallery-bookclub-divider">
+        <div class="gallery-bookclub-photo">
+          ${tile(20, "Book club discussion")}
+        </div>
+        <h3 id="gallery-bookclub-divider" class="gallery-bookclub-divider">Book Club</h3>
+        <div class="gallery-bookclub-photo">
+          ${tile(21, "Book club at tables")}
+        </div>
+        <p class="gallery-instructors">Volunteer Instructors: Ashley Shim, Fiona Impert, Joy Yoo</p>
+      </section>
+
+      <section id="tech-team" class="gallery-layout-block gallery-tech-block" aria-labelledby="gallery-tech-title">
+        <h2 id="gallery-tech-title" class="gallery-tech-title">Tech Team</h2>
+        <p class="gallery-tech-members">Volunteer Team Members: Rachel Da, Nathan Da, Tianyi Yang, Wesley Jeong</p>
+        <div class="gallery-tech-photo">
+          ${tile(22, "Tech team collaborating with laptops")}
+        </div>
+      </section>
+    </div>`;
+
   write("gallery.html", shell({ rel: "gallery.html", title: "Gallery | NWCC", body, pageClass: "gallery-page" }));
 }
 
@@ -664,6 +784,24 @@ h3 { font-size: clamp(1.35rem, 2vw, 2rem); }
 .button:active, .pill-link:active { transform: translateY(0) scale(.97); }
 .section { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: clamp(70px, 10vw, 120px) 0; }
 .split-section { display: grid; grid-template-columns: .42fr 1fr; gap: clamp(28px, 6vw, 80px); align-items: start; }
+.updates-section { display: flex; justify-content: center; }
+.updates-teaser { width: min(560px, 100%); margin: 0; padding: clamp(28px, 5vw, 48px); border: 0; border-radius: var(--radius); text-align: left; font: inherit; color: #fff; cursor: zoom-in; box-shadow: var(--shadow); background: linear-gradient(135deg, var(--blue), var(--forest)); transition: transform .32s var(--ease-premium), box-shadow .32s var(--ease-premium); }
+.updates-teaser:hover { transform: translateY(-3px); box-shadow: 0 28px 90px rgba(19, 63, 132, .28); }
+.updates-teaser:active { transform: translateY(-1px) scale(.992); }
+.updates-teaser-eyebrow { display: block; margin-bottom: 12px; color: var(--gold); }
+.updates-teaser-headline { display: block; font-size: clamp(1.2rem, 2.4vw, 1.55rem); font-weight: 850; line-height: 1.25; margin-bottom: 16px; color: #fff; }
+.updates-teaser-list { margin: 0 0 18px; padding-left: 1.15rem; color: rgba(255, 255, 255, .9); font-size: .98rem; line-height: 1.5; }
+.updates-teaser-list li { margin-bottom: 10px; }
+.updates-teaser-list li:last-child { margin-bottom: 0; }
+.updates-teaser-label { display: inline-block; min-width: 4.5rem; font-weight: 850; color: rgba(255, 255, 255, .98); }
+.updates-teaser-cta { display: inline-flex; align-items: center; font-weight: 850; font-size: .95rem; color: var(--gold); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: rgba(216, 156, 53, .45); }
+.updates-zoom-clone { position: fixed; top: 0; left: 0; z-index: 101; max-width: none; overflow: hidden; cursor: default; box-sizing: border-box; background: #fff; color: var(--ink); box-shadow: 0 20px 52px rgba(0, 0, 0, .22); will-change: transform, width, height, border-radius, box-shadow; transition: transform .68s var(--ease-premium), width .68s var(--ease-premium), height .68s var(--ease-premium), border-radius .68s var(--ease-premium), box-shadow .68s var(--ease-premium); }
+.updates-zoom-clone.is-open { box-shadow: 0 32px 120px rgba(0, 0, 0, .42); }
+.updates-zoom-scroll { max-height: 100%; overflow: auto; padding: clamp(22px, 4vw, 40px); padding-top: clamp(40px, 5vw, 52px); -webkit-overflow-scrolling: touch; }
+.updates-zoom-inner h3 { color: var(--forest); margin-top: 1.5rem; font-size: clamp(1.1rem, 1.8vw, 1.45rem); }
+.updates-zoom-inner p:last-child { margin-bottom: 0; }
+.updates-zoom-close { position: absolute; top: 12px; right: 12px; z-index: 2; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-weight: 800; cursor: pointer; transition: background .25s var(--ease-premium), border-color .25s var(--ease-premium); }
+.updates-zoom-close:hover { background: var(--mist); border-color: rgba(12, 107, 85, .28); }
 .feature-panel, .contact-card, .signup-card, .compact-info { background: #fff; border: 1px solid var(--line); border-top: 5px solid var(--gold); border-radius: var(--radius); box-shadow: var(--soft); padding: clamp(26px, 4vw, 52px); }
 .feature-panel h3, .article-copy h2, .compact-info h3 { color: var(--forest); margin-top: 2rem; font-size: clamp(1.2rem, 2vw, 1.6rem); }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }
@@ -684,7 +822,8 @@ h3 { font-size: clamp(1.35rem, 2vw, 2rem); }
 .image-card { margin: 0; overflow: hidden; border-radius: var(--radius); box-shadow: var(--shadow); background: #fff; transition: transform .45s var(--ease-premium), box-shadow .45s var(--ease-premium); }
 .image-card:hover { transform: translateY(-4px); box-shadow: 0 34px 100px rgba(22,34,31,.2); }
 .image-card img { width: 100%; aspect-ratio: 1.1; object-fit: cover; transition: transform .75s var(--ease-premium), filter .75s var(--ease-premium); }
-.cta-band { width: min(1120px, calc(100% - 40px)); margin: 0 auto 90px; padding: clamp(44px, 7vw, 80px); color: #fff; border-radius: var(--radius); background: linear-gradient(135deg, var(--blue), var(--forest)); box-shadow: var(--shadow); }
+.cta-band { width: min(1120px, calc(100% - 40px)); margin: 0 auto 90px; padding: clamp(44px, 7vw, 80px); color: #fff; border-radius: var(--radius); background: linear-gradient(135deg, var(--blue) 0%, #0f4a6e 42%, var(--forest) 100%); box-shadow: var(--shadow); }
+.cta-band .eyebrow { color: var(--gold); }
 .page-title { width: min(980px, calc(100% - 40px)); margin: 0 auto; padding: clamp(72px, 10vw, 120px) 0 40px; text-align: center; }
 .page-title.left { text-align: left; }
 .page-title h1, .article-hero h1 { font-size: clamp(3rem, 7vw, 6rem); }
@@ -717,6 +856,67 @@ h3 { font-size: clamp(1.35rem, 2vw, 2rem); }
 .gallery-tile img { width: 100%; transition: transform .75s var(--ease-premium), filter .75s var(--ease-premium); }
 .gallery-tile:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
 .gallery-tile:hover img { transform: scale(1.04); }
+
+.gallery-page .gallery-shell { width: min(980px, calc(100% - 40px)); margin: 0 auto; padding: clamp(40px, 6vw, 72px) 0 clamp(70px, 10vw, 120px); }
+.gallery-layout-block { margin-bottom: clamp(44px, 7vw, 72px); scroll-margin-top: 96px; }
+.gallery-section-title { text-align: center; font-family: Georgia, "Times New Roman", ui-serif, serif; font-size: clamp(1.65rem, 3vw, 2.1rem); font-weight: 700; color: var(--blue); margin: 0 0 1.35rem; letter-spacing: 0; }
+.gallery-subsection-title { text-align: center; font-family: Georgia, "Times New Roman", ui-serif, serif; font-size: clamp(1.25rem, 2.4vw, 1.65rem); font-style: italic; font-weight: 700; color: var(--blue); margin: 0 0 1.25rem; letter-spacing: 0; }
+.gallery-chamber-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.gallery-chamber-grid .gallery-tile { margin-bottom: 0; }
+.gallery-chamber-grid .gallery-tile img { aspect-ratio: 4/3; object-fit: cover; height: auto; }
+.gallery-hero-wrap { position: relative; border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; box-shadow: var(--soft); }
+.gallery-hero-wrap .gallery-tile { margin: 0; border-radius: 0; box-shadow: none; position: relative; z-index: 2; }
+.gallery-hero-wrap .gallery-tile img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.gallery-hero-wrap::after { content: ""; position: absolute; inset: 0; background: rgba(19, 63, 132, .38); pointer-events: none; z-index: 1; border-radius: inherit; }
+.gallery-video-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
+.gallery-video-cell { position: relative; border-radius: var(--radius); overflow: hidden; box-shadow: var(--soft); min-height: 200px; }
+.gallery-video-cell .gallery-tile { position: relative; z-index: 1; margin: 0; height: 100%; min-height: inherit; border-radius: 0; box-shadow: none; }
+.gallery-video-cell .gallery-tile img { width: 100%; height: 100%; min-height: 220px; object-fit: cover; }
+.gallery-video-cell.gallery-play-overlay::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .06); pointer-events: none; z-index: 2; border-radius: inherit; }
+.gallery-play-dot { position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; margin: -31px 0 0 -31px; border-radius: 50%; background: rgba(19, 63, 132, .88); pointer-events: none; z-index: 3; box-shadow: 0 8px 24px rgba(0, 0, 0, .2); }
+.gallery-play-triangle { position: absolute; left: 50%; top: 50%; width: 0; height: 0; margin: -10px 0 0 -6px; border-style: solid; border-width: 10px 0 10px 16px; border-color: transparent transparent transparent rgba(255, 255, 255, .95); pointer-events: none; z-index: 4; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .25)); }
+.gallery-teaching-head .gallery-section-title { margin-bottom: .75rem; }
+.gallery-team-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 2rem; }
+.gallery-team-tabs a { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; border-radius: 999px; border: 2px solid rgba(19, 63, 132, .42); color: #4c3d8f; font-weight: 750; font-size: .94rem; background: #fff; transition: background .28s var(--ease-premium), border-color .28s var(--ease-premium), color .28s var(--ease-premium); }
+.gallery-team-tabs a:hover { background: rgba(19, 63, 132, .08); border-color: var(--blue); color: var(--blue); }
+.gallery-team-tabs a.is-active { background: rgba(19, 63, 132, .1); border-color: var(--blue); color: var(--blue); }
+.gallery-math1-top { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.gallery-math1-top .gallery-tile { margin-bottom: 0; }
+.gallery-math1-top .gallery-tile img { aspect-ratio: 16/10; object-fit: cover; }
+.gallery-math1-bottom { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; }
+.gallery-math1-bottom .gallery-tile { margin-bottom: 0; }
+.gallery-math1-bottom .gallery-tile img { width: 100%; height: 100%; object-fit: cover; min-height: 240px; }
+.gallery-math2-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.gallery-math2-row .gallery-tile { margin-bottom: 0; }
+.gallery-math2-row .gallery-tile img { aspect-ratio: 3/2; object-fit: cover; }
+.gallery-instructors { color: var(--blue); font-weight: 650; margin: 0 0 1.15rem; font-size: 1rem; line-height: 1.45; }
+.gallery-instructors-between { margin: 1.15rem 0; text-align: left; }
+.gallery-writing-single { max-width: 640px; margin: 0 auto 1.15rem; }
+.gallery-writing-single .gallery-tile { margin-bottom: 0; }
+.gallery-writing-single .gallery-tile img { aspect-ratio: 3/2; object-fit: cover; }
+.gallery-spanish-hero { margin-bottom: 14px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--soft); }
+.gallery-spanish-hero .gallery-tile { margin: 0; }
+.gallery-spanish-hero .gallery-tile img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.gallery-spanish-wide { margin-top: 14px; border-radius: var(--radius); overflow: hidden; box-shadow: var(--soft); }
+.gallery-spanish-wide .gallery-tile { margin: 0; }
+.gallery-spanish-wide .gallery-tile img { width: 100%; aspect-ratio: 2/1; object-fit: cover; display: block; }
+.gallery-bookclub-photo { margin-bottom: 0; border-radius: var(--radius); overflow: hidden; box-shadow: var(--soft); }
+.gallery-bookclub-photo .gallery-tile { margin: 0; }
+.gallery-bookclub-photo .gallery-tile img { width: 100%; object-fit: cover; }
+.gallery-bookclub-divider { text-align: center; font-family: Georgia, "Times New Roman", ui-serif, serif; font-size: clamp(1.25rem, 2.4vw, 1.55rem); font-weight: 700; font-style: italic; color: var(--blue); margin: 1.25rem 0; line-height: 1.2; }
+.gallery-tech-title { text-align: center; font-family: Georgia, "Times New Roman", ui-serif, serif; font-size: clamp(1.85rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: .02em; color: var(--blue); margin: 0 0 .75rem; }
+.gallery-tech-members { text-align: center; color: var(--blue); font-weight: 650; margin: 0 0 1.25rem; font-size: 1rem; }
+.gallery-tech-photo { max-width: 720px; margin: 0 auto; border-radius: var(--radius); overflow: hidden; box-shadow: var(--soft); }
+.gallery-tech-photo .gallery-tile { margin: 0; }
+.gallery-tech-photo .gallery-tile img { width: 100%; aspect-ratio: 16/10; object-fit: cover; }
+.gallery-writing-block .gallery-instructors,
+.gallery-spanish-block .gallery-instructors,
+.gallery-bookclub-block .gallery-instructors { text-align: center; }
+@media (max-width: 720px) {
+  .gallery-video-row,
+  .gallery-math1-bottom { grid-template-columns: 1fr; }
+  .gallery-math1-bottom .gallery-tile img { min-height: 200px; }
+}
 .compact-info { max-width: 900px; }
 .contact-grid { align-items: stretch; padding-top: 20px; }
 .contact-card h2 { font-size: 1.05rem; margin-top: 1.4rem; color: var(--forest); }
@@ -806,6 +1006,148 @@ const js = `document.addEventListener("DOMContentLoaded", () => {
   const zoomSelector = ".gallery-tile img, .media-grid img, .image-card img, .article-cover, .person-card img";
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let activeZoom = null;
+  let activeUpdatesZoom = null;
+
+  function setPanelRect(panel, rect, radius) {
+    panel.style.width = rect.width + "px";
+    panel.style.height = rect.height + "px";
+    panel.style.transform = "translate3d(" + rect.left + "px, " + rect.top + "px, 0)";
+    panel.style.borderRadius = radius;
+  }
+
+  function measureUpdatesPanelHeight(innerRoot, maxWidthPx) {
+    const inner = innerRoot.cloneNode(true);
+    const scroll = document.createElement("div");
+    scroll.className = "updates-zoom-scroll";
+    scroll.append(inner);
+    const shell = document.createElement("div");
+    shell.style.cssText = "position:fixed;left:-9999px;top:0;width:" + maxWidthPx + "px;visibility:hidden;pointer-events:none";
+    shell.append(scroll);
+    document.body.append(shell);
+    const h = scroll.scrollHeight;
+    shell.remove();
+    return h;
+  }
+
+  function updatesTargetRect(template) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const maxWidth = Math.min(640, viewportWidth * 0.92);
+    const maxHeight = viewportHeight * 0.86;
+    const innerRoot = template.content.firstElementChild;
+    if (!innerRoot) return null;
+    const contentH = measureUpdatesPanelHeight(innerRoot, maxWidth);
+    const height = Math.min(Math.max(contentH, 80), maxHeight);
+    const width = maxWidth;
+    return {
+      width,
+      height,
+      left: (viewportWidth - width) / 2,
+      top: (viewportHeight - height) / 2,
+    };
+  }
+
+  function cleanupUpdatesZoom(state) {
+    state.overlay.remove();
+    state.panel.remove();
+    document.removeEventListener("keydown", state.onEscape);
+    if (activeUpdatesZoom === state) activeUpdatesZoom = null;
+    if (state.source) {
+      state.source.setAttribute("aria-expanded", "false");
+      state.source.focus();
+    }
+  }
+
+  function closeUpdatesZoom(state) {
+    if (!state || state.isClosing) return;
+    state.isClosing = true;
+    const end = state.source.getBoundingClientRect();
+    const endRadius = getComputedStyle(state.source).borderRadius || state.radius;
+    state.overlay.classList.remove("is-open");
+    state.panel.classList.remove("is-open");
+
+    if (!reducedMotion.matches && end.width > 4 && end.height > 4) {
+      setPanelRect(state.panel, end, endRadius);
+      window.setTimeout(() => cleanupUpdatesZoom(state), 700);
+      return;
+    }
+
+    cleanupUpdatesZoom(state);
+  }
+
+  function closeAnyUpdatesZoom() {
+    if (activeUpdatesZoom) closeUpdatesZoom(activeUpdatesZoom);
+  }
+
+  function openUpdatesZoom(source, template) {
+    if (activeZoom) closeImageZoom(activeZoom);
+    if (activeUpdatesZoom) closeUpdatesZoom(activeUpdatesZoom);
+
+    const start = source.getBoundingClientRect();
+    if (start.width < 8 || start.height < 8) return;
+
+    const target = updatesTargetRect(template);
+    if (!target) return;
+
+    const overlay = document.createElement("button");
+    overlay.className = "image-zoom-overlay";
+    overlay.type = "button";
+    overlay.setAttribute("aria-label", "Close notice");
+
+    const panel = document.createElement("div");
+    panel.id = "updates-zoom-root";
+    panel.className = "updates-zoom-clone";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "true");
+    panel.setAttribute("aria-label", "Full important updates notice");
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "updates-zoom-close";
+    closeBtn.textContent = "Close";
+
+    const scroll = document.createElement("div");
+    scroll.className = "updates-zoom-scroll";
+    scroll.append(template.content.firstElementChild.cloneNode(true));
+    panel.append(closeBtn, scroll);
+
+    const radius = getComputedStyle(source).borderRadius || "8px";
+    const state = {
+      overlay,
+      panel,
+      source,
+      radius,
+      isClosing: false,
+      onEscape(event) {
+        if (event.key === "Escape") closeUpdatesZoom(state);
+      },
+    };
+
+    activeUpdatesZoom = state;
+    source.setAttribute("aria-expanded", "true");
+    document.body.append(overlay, panel);
+    document.addEventListener("keydown", state.onEscape);
+
+    overlay.addEventListener("click", () => closeUpdatesZoom(state));
+    closeBtn.addEventListener("click", () => closeUpdatesZoom(state));
+
+    const runOpen = () => {
+      overlay.classList.add("is-open");
+      panel.classList.add("is-open");
+      setPanelRect(panel, target, "10px");
+    };
+
+    if (reducedMotion.matches) {
+      setPanelRect(panel, target, "10px");
+      overlay.classList.add("is-open");
+      panel.classList.add("is-open");
+    } else {
+      setPanelRect(panel, start, radius);
+      requestAnimationFrame(() => requestAnimationFrame(runOpen));
+    }
+
+    requestAnimationFrame(() => closeBtn.focus());
+  }
 
   function targetRectFor(source, clone) {
     const viewportWidth = window.innerWidth;
@@ -863,6 +1205,7 @@ const js = `document.addEventListener("DOMContentLoaded", () => {
   }
 
   function openImageZoom(source) {
+    closeAnyUpdatesZoom();
     if (activeZoom) closeImageZoom(activeZoom);
 
     const start = source.getBoundingClientRect();
@@ -945,6 +1288,14 @@ const js = `document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  const updatesOpen = document.querySelector("#updates-teaser-open");
+  const updatesTemplate = document.querySelector("#updates-full-template");
+  if (updatesOpen && updatesTemplate) {
+    updatesOpen.addEventListener("click", () => {
+      openUpdatesZoom(updatesOpen, updatesTemplate);
+    });
+  }
+
   document.querySelectorAll("[data-static-form]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -953,6 +1304,49 @@ const js = `document.addEventListener("DOMContentLoaded", () => {
       form.reset();
     });
   });
+
+  const galleryTabs = document.querySelector(".gallery-team-tabs");
+  if (galleryTabs) {
+    const tabLinks = [...galleryTabs.querySelectorAll('a[href^="#"]')];
+    tabLinks.forEach((link) => {
+      link.addEventListener("click", () => {
+        tabLinks.forEach((l) => l.classList.remove("is-active"));
+        link.classList.add("is-active");
+      });
+    });
+
+    const syncTabFromHash = () => {
+      const hash = location.hash;
+      if (!hash) return;
+      const match = tabLinks.find((l) => l.getAttribute("href") === hash);
+      if (!match) return;
+      tabLinks.forEach((l) => l.classList.remove("is-active"));
+      match.classList.add("is-active");
+    };
+    syncTabFromHash();
+    window.addEventListener("hashchange", syncTabFromHash);
+
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const hits = entries.filter((e) => e.isIntersecting && e.intersectionRatio > 0.12);
+          if (!hits.length) return;
+          hits.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+          const id = "#" + hits[0].target.id;
+          const match = tabLinks.find((l) => l.getAttribute("href") === id);
+          if (!match) return;
+          tabLinks.forEach((l) => l.classList.remove("is-active"));
+          match.classList.add("is-active");
+        },
+        { rootMargin: "-12% 0px -58% 0px", threshold: [0, 0.12, 0.28, 0.5] }
+      );
+      tabLinks.forEach((link) => {
+        const sel = link.getAttribute("href");
+        const section = sel ? document.querySelector(sel) : null;
+        if (section) observer.observe(section);
+      });
+    }
+  }
 });`;
 
 cleanAssetDirectory();
