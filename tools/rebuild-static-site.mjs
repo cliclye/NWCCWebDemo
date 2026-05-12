@@ -381,8 +381,8 @@ function buildHome() {
         <h2>Latest from NWCC</h2>
         <a class="text-link" href="announcements.html">View all announcements</a>
       </div>
-      <div class="managed-announcements story-grid" data-managed-announcements data-managed-limit="2" hidden></div>
-      <div class="story-grid">${announcements.slice(0, 3).map((item) => announcementCard(item, "index.html")).join("")}</div>
+      <div class="managed-announcements story-grid" data-managed-announcements data-managed-limit="3" hidden></div>
+      <div class="story-grid" data-static-announcements>${announcements.slice(0, 3).map((item) => announcementCard(item, "index.html")).join("")}</div>
     </section>
     <section class="section about-preview">
       <div class="about-copy reveal">
@@ -450,6 +450,27 @@ function buildAnnouncements() {
     });
     write(item.rel, shell({ rel: item.rel, title: `${item.title} | NWCC`, body, pageClass: "article-page" }));
   }
+}
+
+function buildManagedAnnouncementDetail() {
+  const body = `
+    <section class="article-hero managed-detail-hero" data-managed-announcement-hero>
+      <a class="back-link" href="../announcements.html">Back</a>
+      <p class="eyebrow">Announcement</p>
+      <h1>Loading announcement</h1>
+      <p class="lead">This announcement is loading from the browser's saved admin content.</p>
+    </section>
+    <article class="article-body managed-detail-body" data-managed-announcement-detail>
+      <div class="article-copy">
+        <p>If this message stays visible, the announcement is not available in this browser.</p>
+      </div>
+    </article>`;
+  write("announcements/admin-announcement.html", shell({
+    rel: "announcements/admin-announcement.html",
+    title: "Announcement | NWCC",
+    body,
+    pageClass: "article-page managed-announcement-page",
+  }));
 }
 
 function articlePage({ rel, back, eyebrow, title, intro, lines, images }) {
@@ -1516,6 +1537,7 @@ writeAssets();
 buildHome();
 buildAbout();
 buildAnnouncements();
+buildManagedAnnouncementDetail();
 buildProjects();
 buildGallery();
 buildContact();

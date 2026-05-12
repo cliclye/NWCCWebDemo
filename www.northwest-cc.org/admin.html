@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin | NWCC</title>
-  <meta name="description" content="NWCC admin announcement editor.">
+  <meta name="description" content="NWCC admin announcement dashboard.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" sizes="192x192" href="https://static.wixstatic.com/media/feb1f2_dec2623faf084647926450d9868b31bd~mv2.png/v1/fill/w_93,h_93,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/NWCC%20Logo.png" type="image/png">
   <link rel="stylesheet" href="assets/app.css">
@@ -16,8 +16,8 @@
       <a class="back-link" href="index.html">Back to site</a>
       <p class="eyebrow">Hidden admin</p>
       <h1>NWCC Admin</h1>
-      <p class="lead">Sign in to create announcements for this static site preview.</p>
-      <p class="admin-security-note">Static preview only: published announcements are saved in this browser. Production publishing needs server-side auth and shared storage.</p>
+      <p class="lead">Sign in to manage announcements, card previews, and announcement detail pages.</p>
+      <p class="admin-security-note">Static preview only: announcements are saved in this browser. Production publishing needs server-side auth and shared storage.</p>
       <form class="admin-form" data-admin-login>
         <label>
           <span>Username</span>
@@ -32,25 +32,71 @@
       </form>
     </section>
 
-    <section class="admin-panel admin-editor-panel" data-admin-editor hidden>
+    <section class="admin-panel admin-editor-panel admin-dashboard" data-admin-editor hidden>
       <div class="admin-editor-head">
         <div>
-          <p class="eyebrow">Announcement editor</p>
-          <h1>Create an announcement</h1>
+          <p class="eyebrow">Announcement dashboard</p>
+          <h1>Content control</h1>
+          <p class="lead">Create, edit, preview, and open announcement pages from one dashboard.</p>
         </div>
-        <button class="button ghost-dark" type="button" data-admin-logout>Sign out</button>
+        <div class="admin-head-actions">
+          <a class="button ghost-dark" href="index.html">View site</a>
+          <button class="button ghost-dark" type="button" data-admin-logout>Sign out</button>
+        </div>
       </div>
-      <p class="admin-security-note">This editor avoids SQL injection because there is no SQL layer, and it renders announcement text with safe text nodes. It is still not secure for production because browser code can be inspected or bypassed.</p>
 
-      <div class="admin-workbench">
+      <div class="admin-metrics" data-admin-metrics></div>
+
+      <div class="admin-dashboard-layout">
+        <aside class="admin-sidebar-panel">
+          <div class="admin-sidebar-head">
+            <div>
+              <p class="eyebrow">Library</p>
+              <h2>Announcements</h2>
+            </div>
+            <button class="button primary" type="button" data-admin-new>New</button>
+          </div>
+          <div class="admin-announcement-list" data-admin-announcement-list></div>
+
+          <div class="admin-data-tools">
+            <p class="eyebrow">Data</p>
+            <textarea data-admin-json rows="6" spellcheck="false" placeholder="Exported announcement JSON"></textarea>
+            <div class="admin-data-actions">
+              <button class="button ghost-dark" type="button" data-admin-export>Export</button>
+              <button class="button ghost-dark" type="button" data-admin-import>Import</button>
+            </div>
+            <p class="form-message" role="status" data-admin-data-message></p>
+          </div>
+        </aside>
+
         <form class="admin-form admin-compose" data-admin-compose>
+          <input type="hidden" name="originalId">
+          <div class="admin-form-section admin-span-2">
+            <div>
+              <p class="eyebrow">Compose</p>
+              <h2 data-admin-compose-title>Create announcement</h2>
+            </div>
+            <button class="button ghost-dark" type="reset">Clear</button>
+          </div>
+
           <label class="admin-span-2">
             <span>Title</span>
             <input name="title" required>
           </label>
           <label>
+            <span>URL slug</span>
+            <input name="slug" pattern="[a-z0-9-]+" placeholder="auto-generated">
+          </label>
+          <label>
             <span>Date</span>
             <input type="date" name="date" required>
+          </label>
+          <label>
+            <span>Status</span>
+            <select name="status">
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
           </label>
           <label>
             <span>Category</span>
@@ -72,9 +118,21 @@
               <option value="coral">Coral</option>
             </select>
           </label>
-          <label>
-            <span>Image URL</span>
+          <label class="admin-span-2">
+            <span>Short summary</span>
+            <textarea name="summary" rows="3" required></textarea>
+          </label>
+          <label class="admin-span-2">
+            <span>Announcement body</span>
+            <textarea name="body" rows="10" required></textarea>
+          </label>
+          <label class="admin-span-2">
+            <span>Cover image URL</span>
             <input name="image" type="url" placeholder="https://...">
+          </label>
+          <label class="admin-span-2">
+            <span>Gallery image URLs</span>
+            <textarea name="gallery" rows="4" placeholder="One image URL per line"></textarea>
           </label>
           <label>
             <span>Button text</span>
@@ -84,39 +142,28 @@
             <span>Button URL</span>
             <input name="ctaUrl" type="url" placeholder="https://...">
           </label>
-          <label class="admin-span-2">
-            <span>Short summary</span>
-            <textarea name="summary" rows="3" required></textarea>
-          </label>
-          <label class="admin-span-2">
-            <span>Announcement body</span>
-            <textarea name="body" rows="8" required></textarea>
-          </label>
           <label class="admin-checkbox admin-span-2">
             <input type="checkbox" name="featured">
-            <span>Feature this announcement at the top</span>
+            <span>Use featured styling</span>
           </label>
           <div class="admin-actions">
-            <button class="button primary" type="submit">Publish announcement</button>
-            <button class="button ghost-dark" type="reset">Clear</button>
+            <button class="button primary" type="submit" data-admin-submit>Publish announcement</button>
+            <a class="button ghost-dark admin-preview-link" href="#" target="_blank" rel="noopener" data-admin-detail-link>Open page</a>
           </div>
           <p class="form-message" role="status" data-admin-compose-message></p>
         </form>
 
         <aside class="admin-preview-panel" aria-live="polite">
-          <p class="eyebrow">Live preview</p>
+          <div class="admin-preview-head">
+            <div>
+              <p class="eyebrow">Preview</p>
+              <h2>Card and page</h2>
+            </div>
+          </div>
           <div class="admin-card-preview" data-admin-card-preview></div>
           <div class="admin-full-preview" data-admin-full-preview></div>
         </aside>
       </div>
-
-      <section class="admin-list-block">
-        <div class="section-heading">
-          <p class="eyebrow">Browser storage</p>
-          <h2>Published in this browser</h2>
-        </div>
-        <div class="admin-announcement-list" data-admin-announcement-list></div>
-      </section>
     </section>
   </main>
 </body>

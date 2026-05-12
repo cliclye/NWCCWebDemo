@@ -322,38 +322,45 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  document.querySelectorAll(zoomSelector).forEach((img) => {
-    if (img.closest(".brand") || img.classList.contains("hero-bg")) return;
-    img.classList.add("zoomable-image");
-    const zoomButton = img.closest(".gallery-tile");
+  function enableImageZoom(root = document) {
+    root.querySelectorAll(zoomSelector).forEach((img) => {
+      if (img.dataset.zoomBound === "true") return;
+      if (img.closest(".brand") || img.classList.contains("hero-bg")) return;
+      img.dataset.zoomBound = "true";
+      img.classList.add("zoomable-image");
+      const zoomButton = img.closest(".gallery-tile");
 
-    if (!img.closest("a, button")) {
-      img.tabIndex = 0;
-      img.setAttribute("role", "button");
-      img.setAttribute("aria-label", "View larger image");
-    }
+      if (!img.closest("a, button")) {
+        img.tabIndex = 0;
+        img.setAttribute("role", "button");
+        img.setAttribute("aria-label", "View larger image");
+      }
 
-    if (zoomButton) {
-      zoomButton.setAttribute("aria-label", "View larger image");
-      zoomButton.addEventListener("click", (event) => {
+      if (zoomButton && zoomButton.dataset.zoomBound !== "true") {
+        zoomButton.dataset.zoomBound = "true";
+        zoomButton.setAttribute("aria-label", "View larger image");
+        zoomButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          openImageZoom(img);
+        });
+      }
+
+      img.addEventListener("click", (event) => {
+        if (img.closest("a")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        openImageZoom(img);
+      });
+
+      img.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
         openImageZoom(img);
       });
-    }
-
-    img.addEventListener("click", (event) => {
-      if (img.closest("a")) return;
-      event.preventDefault();
-      event.stopPropagation();
-      openImageZoom(img);
     });
+  }
 
-    img.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      openImageZoom(img);
-    });
-  });
+  enableImageZoom();
 
   const updatesOpen = document.querySelector("#updates-teaser-open");
   const updatesTemplate = document.querySelector("#updates-full-template");
@@ -384,26 +391,6 @@ document.addEventListener("DOMContentLoaded", () => {
     gold: "#aa7a2a",
     coral: "#b85d49",
   };
-
-  function loadManagedAnnouncements() {
-    try {
-      return JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY) || "[]")
-        .filter((item) => item && item.title && item.date)
-        .sort((a, b) => {
-          const featuredRank = Number(Boolean(b.featured)) - Number(Boolean(a.featured));
-          if (featuredRank) return featuredRank;
-          const dateRank = String(b.date).localeCompare(String(a.date));
-          if (dateRank) return dateRank;
-          return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
-        });
-    } catch {
-      return [];
-    }
-  }
-
-  function saveManagedAnnouncements(items) {
-    localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(items));
-  }
 
   async function sha256(value) {
     const bytes = new TextEncoder().encode(value);
@@ -440,81 +427,114 @@ document.addEventListener("DOMContentLoaded", () => {
     return element;
   }
 
-  function openManagedAnnouncement(item) {
-    const dialog = document.createElement("div");
-    dialog.className = "announcement-dialog";
-    dialog.setAttribute("role", "dialog");
-    dialog.setAttribute("aria-modal", "true");
+  function slugify(value) {
+    return String(value || "")
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 72);
+  }
 
-    const panel = document.createElement("article");
-    panel.className = "announcement-dialog-panel";
-    panel.style.setProperty("--managed-accent", managedAccent(item.accent));
+  function parseImageList(value) {
+    const list = Array.isArray(value) ? value : String(value || "").split(/\n+/);
+    return list.map((entry) => safeUrl(entry)).filter(Boolean).slice(0, 12);
+  }
 
-    const imageUrl = safeUrl(item.image);
-    if (imageUrl) {
-      const image = document.createElement("img");
-      image.src = imageUrl;
-      image.alt = item.title;
-      panel.append(image);
-    }
-
-    panel.append(
-      createTextElement("p", "eyebrow", (item.category || "Announcement") + " - " + formatAnnouncementDate(item.date)),
-      createTextElement("h2", "", item.title)
-    );
-
-    if (item.summary) panel.append(createTextElement("p", "lead", item.summary));
-    String(item.body || "").split(/\n{2,}|\n/).filter(Boolean).forEach((line) => {
-      panel.append(createTextElement("p", "", line.trim()));
-    });
-
-    const actions = document.createElement("div");
-    actions.className = "announcement-dialog-actions";
-
-    const ctaUrl = safeUrl(item.ctaUrl, ["http:", "https:", "mailto:", "tel:"]);
-    if (ctaUrl && item.ctaLabel) {
-      const cta = document.createElement("a");
-      cta.className = "button primary";
-      cta.href = ctaUrl;
-      cta.textContent = item.ctaLabel;
-      actions.append(cta);
-    }
-
-    const close = document.createElement("button");
-    close.className = "button ghost-dark announcement-dialog-close";
-    close.type = "button";
-    close.textContent = "Close";
-    actions.append(close);
-    panel.append(actions);
-    dialog.append(panel);
-
-    const closeDialog = () => {
-      document.removeEventListener("keydown", onEscape);
-      dialog.remove();
+  function normalizeManagedAnnouncement(item) {
+    const title = String(item?.title || "").trim();
+    const date = String(item?.date || "").trim();
+    const fallbackId = slugify([title, date].filter(Boolean).join("-")) || String(item?.id || Date.now());
+    const id = String(item?.id || item?.slug || fallbackId).trim();
+    return {
+      id,
+      slug: slugify(item?.slug || id),
+      title,
+      date,
+      status: item?.status === "draft" ? "draft" : "published",
+      category: String(item?.category || "Announcement").trim(),
+      accent: MANAGED_ACCENTS[item?.accent] ? item.accent : "forest",
+      summary: String(item?.summary || "").trim(),
+      body: String(item?.body || "").trim(),
+      image: safeUrl(item?.image),
+      gallery: parseImageList(item?.gallery),
+      ctaLabel: String(item?.ctaLabel || "").trim(),
+      ctaUrl: safeUrl(item?.ctaUrl, ["http:", "https:", "mailto:", "tel:"]),
+      featured: Boolean(item?.featured),
+      createdAt: String(item?.createdAt || new Date().toISOString()),
+      updatedAt: String(item?.updatedAt || item?.createdAt || new Date().toISOString()),
     };
-    const onEscape = (event) => {
-      if (event.key === "Escape") closeDialog();
-    };
+  }
 
-    close.addEventListener("click", closeDialog);
-    dialog.addEventListener("click", (event) => {
-      if (event.target === dialog) closeDialog();
+  function sortManagedAnnouncements(a, b) {
+    const dateRank = String(b.date || "").localeCompare(String(a.date || ""));
+    if (dateRank) return dateRank;
+    return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+  }
+
+  function loadManagedAnnouncements(options = {}) {
+    try {
+      return JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY) || "[]")
+        .map(normalizeManagedAnnouncement)
+        .filter((item) => item.title && item.date)
+        .filter((item) => options.includeDrafts || item.status === "published")
+        .sort(sortManagedAnnouncements);
+    } catch {
+      return [];
+    }
+  }
+
+  function saveManagedAnnouncements(items) {
+    const safeItems = items
+      .map(normalizeManagedAnnouncement)
+      .filter((item) => item.title && item.date)
+      .sort(sortManagedAnnouncements);
+    localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(safeItems));
+  }
+
+  function managedDetailUrl(item, rootRelative = false) {
+    const id = encodeURIComponent(item.id || item.slug || "");
+    const base = rootRelative || !location.pathname.includes("/announcements/")
+      ? "announcements/admin-announcement.html"
+      : "admin-announcement.html";
+    return base + "?id=" + id;
+  }
+
+  function appendAnnouncementBody(target, body, limit) {
+    const blocks = String(body || "")
+      .split(/\n{2,}/)
+      .map((block) => block.trim())
+      .filter(Boolean);
+    const visibleBlocks = Number.isFinite(limit) ? blocks.slice(0, limit) : blocks;
+
+    visibleBlocks.forEach((block) => {
+      const lines = block.split(/\n/).map((line) => line.trim()).filter(Boolean);
+      const heading = lines[0]?.match(/^(#{2,4})\s+(.+)/);
+      if (heading) {
+        const level = Math.min(4, Math.max(2, heading[1].length));
+        target.append(createTextElement("h" + level, "", heading[2].trim()));
+        lines.slice(1).forEach((line) => {
+          target.append(createTextElement("p", "", line));
+        });
+        return;
+      }
+      lines.forEach((line) => {
+        target.append(createTextElement("p", "", line));
+      });
     });
-    document.addEventListener("keydown", onEscape);
-    document.body.append(dialog);
-    close.focus();
   }
 
   function createManagedCard(item) {
     const article = document.createElement("article");
     article.className = "story-card managed-story reveal is-visible";
+    article.dataset.announcementId = item.id;
     article.style.setProperty("--managed-accent", managedAccent(item.accent));
     if (item.featured) article.classList.add("is-featured");
 
-    const media = document.createElement("button");
+    const media = document.createElement("a");
     media.className = "story-media managed-open";
-    media.type = "button";
-    media.dataset.managedOpen = item.id;
+    media.href = managedDetailUrl(item);
     const imageUrl = safeUrl(item.image);
     if (imageUrl) {
       const image = document.createElement("img");
@@ -529,21 +549,38 @@ document.addEventListener("DOMContentLoaded", () => {
     const content = document.createElement("div");
     content.className = "story-content";
     if (item.featured) content.append(createTextElement("span", "managed-badge", "Featured"));
+    if (item.status === "draft") content.append(createTextElement("span", "managed-badge managed-badge-muted", "Draft"));
+    const title = document.createElement("h2");
+    const titleLink = document.createElement("a");
+    titleLink.href = managedDetailUrl(item);
+    titleLink.textContent = item.title;
+    title.append(titleLink);
     content.append(
       createTextElement("p", "eyebrow", (item.category || "Announcement") + " - " + formatAnnouncementDate(item.date)),
-      createTextElement("h2", "", item.title),
+      title,
       createTextElement("p", "", item.summary || "")
     );
 
-    const open = document.createElement("button");
+    const open = document.createElement("a");
     open.className = "text-link managed-open";
-    open.type = "button";
-    open.dataset.managedOpen = item.id;
+    open.href = managedDetailUrl(item);
     open.textContent = "Read announcement";
     content.append(open);
 
     article.append(media, content);
     return article;
+  }
+
+  function syncStaticAnnouncementCards(container, visibleManagedCount, limit) {
+    if (!limit) return;
+    const staticGrid = container.closest(".section")?.querySelector("[data-static-announcements]");
+    if (!staticGrid) return;
+    const remainingStatic = Math.max(limit - visibleManagedCount, 0);
+    const staticCards = [...staticGrid.querySelectorAll(".story-card")];
+    staticCards.forEach((card, index) => {
+      card.hidden = index >= remainingStatic;
+    });
+    staticGrid.hidden = remainingStatic === 0;
   }
 
   function renderManagedAnnouncements() {
@@ -554,25 +591,97 @@ document.addEventListener("DOMContentLoaded", () => {
       container.replaceChildren();
       container.hidden = visibleItems.length === 0;
       visibleItems.forEach((item) => container.append(createManagedCard(item)));
+      syncStaticAnnouncementCards(container, visibleItems.length, Number(container.dataset.managedLimit || 0));
       applyPremiumCardTilt(container);
     });
   }
 
-  document.addEventListener("click", (event) => {
-    const opener = event.target.closest("[data-managed-open]");
-    if (!opener) return;
-    const item = loadManagedAnnouncements().find((entry) => entry.id === opener.dataset.managedOpen);
-    if (item) openManagedAnnouncement(item);
-  });
+  function renderManagedAnnouncementDetailPage() {
+    const detail = document.querySelector("[data-managed-announcement-detail]");
+    const hero = document.querySelector("[data-managed-announcement-hero]");
+    if (!detail || !hero) return;
+
+    const id = new URLSearchParams(location.search).get("id") || decodeURIComponent(location.hash.replace(/^#/, ""));
+    const item = loadManagedAnnouncements().find((entry) => entry.id === id || entry.slug === id);
+
+    hero.replaceChildren();
+    const back = document.createElement("a");
+    back.className = "back-link";
+    back.href = "../announcements.html";
+    back.textContent = "Back";
+    hero.append(back);
+
+    if (!item) {
+      document.title = "Announcement not found | NWCC";
+      hero.append(
+        createTextElement("p", "eyebrow", "Announcement"),
+        createTextElement("h1", "", "Announcement not found"),
+        createTextElement("p", "lead", "This announcement is not saved in this browser or has not been published.")
+      );
+      detail.replaceChildren();
+      const copy = document.createElement("div");
+      copy.className = "article-copy";
+      copy.append(createTextElement("p", "", "Go back to the announcements page or sign in to the admin dashboard on this browser."));
+      detail.append(copy);
+      return;
+    }
+
+    document.title = item.title + " | NWCC";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", item.summary || "Northwest Collaborative Center announcement.");
+    hero.style.setProperty("--managed-accent", managedAccent(item.accent));
+    hero.append(
+      createTextElement("p", "eyebrow", (item.category || "Announcement") + " - " + formatAnnouncementDate(item.date)),
+      createTextElement("h1", "", item.title),
+      createTextElement("p", "lead", item.summary || "")
+    );
+
+    detail.replaceChildren();
+    if (item.image) {
+      const image = document.createElement("img");
+      image.className = "article-cover";
+      image.src = item.image;
+      image.alt = item.title;
+      image.loading = "lazy";
+      detail.append(image);
+    }
+
+    const copy = document.createElement("div");
+    copy.className = "article-copy";
+    appendAnnouncementBody(copy, item.body);
+    const ctaUrl = safeUrl(item.ctaUrl, ["http:", "https:", "mailto:", "tel:"]);
+    if (item.ctaLabel && ctaUrl) {
+      const cta = document.createElement("a");
+      cta.className = "button primary";
+      cta.href = ctaUrl;
+      cta.textContent = item.ctaLabel;
+      copy.append(cta);
+    }
+    detail.append(copy);
+
+    if (item.gallery.length) {
+      const gallery = document.createElement("div");
+      gallery.className = "media-grid";
+      item.gallery.forEach((src, index) => {
+        const image = document.createElement("img");
+        image.src = src;
+        image.alt = item.title + " image " + (index + 1);
+        image.loading = "lazy";
+        gallery.append(image);
+      });
+      detail.append(gallery);
+    }
+
+    enableImageZoom(detail);
+  }
 
   function renderAdminList() {
     const list = document.querySelector("[data-admin-announcement-list]");
     if (!list) return;
-    const items = loadManagedAnnouncements();
+    const items = loadManagedAnnouncements({ includeDrafts: true });
     list.replaceChildren();
 
     if (!items.length) {
-      list.append(createTextElement("p", "", "No admin announcements have been published in this browser."));
+      list.append(createTextElement("p", "admin-empty", "No announcements have been saved in this browser."));
       return;
     }
 
@@ -585,32 +694,78 @@ document.addEventListener("DOMContentLoaded", () => {
       meta.append(createTextElement("span", "admin-list-chip", item.category || "Announcement"));
       meta.append(createTextElement("span", "admin-list-chip", formatAnnouncementDate(item.date)));
       if (item.featured) meta.append(createTextElement("span", "admin-list-chip", "Featured"));
+      if (item.status === "draft") meta.append(createTextElement("span", "admin-list-chip admin-list-chip-muted", "Draft"));
       copy.append(
         meta,
         createTextElement("h3", "", item.title),
         createTextElement("p", "", item.summary || "")
       );
+      const actions = document.createElement("div");
+      actions.className = "admin-list-actions";
+      const edit = document.createElement("button");
+      edit.className = "admin-list-button";
+      edit.type = "button";
+      edit.dataset.adminEdit = item.id;
+      edit.textContent = "Edit";
+      actions.append(edit);
+      if (item.status === "published") {
+        const view = document.createElement("a");
+        view.className = "admin-list-button";
+        view.href = managedDetailUrl(item, true);
+        view.target = "_blank";
+        view.rel = "noopener";
+        view.textContent = "View";
+        actions.append(view);
+      }
       const remove = document.createElement("button");
-      remove.className = "admin-delete";
+      remove.className = "admin-list-button admin-delete";
       remove.type = "button";
       remove.dataset.adminDelete = item.id;
       remove.textContent = "Delete";
-      row.append(copy, remove);
+      actions.append(remove);
+      row.append(copy, actions);
       list.append(row);
+    });
+  }
+
+  function renderAdminMetrics() {
+    const target = document.querySelector("[data-admin-metrics]");
+    if (!target) return;
+    const items = loadManagedAnnouncements({ includeDrafts: true });
+    const published = items.filter((item) => item.status === "published");
+    const drafts = items.filter((item) => item.status === "draft");
+    const latest = published[0]?.date ? formatAnnouncementDate(published[0].date) : "None";
+    target.replaceChildren();
+    [
+      ["Published", String(published.length)],
+      ["Drafts", String(drafts.length)],
+      ["Featured", String(items.filter((item) => item.featured).length)],
+      ["Latest", latest],
+    ].forEach(([label, value]) => {
+      const card = document.createElement("article");
+      card.className = "admin-metric";
+      card.append(createTextElement("span", "", value), createTextElement("small", "", label));
+      target.append(card);
     });
   }
 
   function collectComposeData(form) {
     const data = new FormData(form);
+    const originalId = String(data.get("originalId") || "").trim();
+    const slug = slugify(data.get("slug"));
     return {
-      id: "__preview__",
+      originalId,
+      id: originalId || slug || "__preview__",
+      slug,
       title: String(data.get("title") || "").trim(),
       date: String(data.get("date") || "").trim(),
+      status: data.get("status") === "draft" ? "draft" : "published",
       category: String(data.get("category") || "").trim(),
       accent: String(data.get("accent") || "forest").trim(),
       summary: String(data.get("summary") || "").trim(),
       body: String(data.get("body") || "").trim(),
       image: safeUrl(data.get("image")),
+      gallery: parseImageList(data.get("gallery")),
       ctaLabel: String(data.get("ctaLabel") || "").trim(),
       ctaUrl: safeUrl(data.get("ctaUrl"), ["http:", "https:", "mailto:", "tel:"]),
       featured: data.get("featured") === "on",
@@ -626,6 +781,7 @@ document.addEventListener("DOMContentLoaded", () => {
       category: item.category || "Announcement",
       summary: item.summary || "A short summary will appear here so families can quickly scan the update.",
       body: item.body || "Write the full announcement body here. Line breaks become clean paragraphs in the final announcement.",
+      id: item.slug || item.originalId || slugify([item.title, item.date].filter(Boolean).join("-")) || "__preview__",
     };
   }
 
@@ -637,16 +793,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const item = previewItem(collectComposeData(form));
     cardTarget.replaceChildren();
     const card = createManagedCard(item);
-    card.querySelectorAll("[data-managed-open]").forEach((control) => {
-      control.removeAttribute("data-managed-open");
+    card.querySelectorAll("a").forEach((control) => {
+      control.removeAttribute("href");
       control.setAttribute("aria-disabled", "true");
-      if ("disabled" in control) control.disabled = true;
     });
     cardTarget.append(card);
     applyPremiumCardTilt(cardTarget);
 
     fullTarget.style.setProperty("--managed-accent", managedAccent(item.accent));
     fullTarget.replaceChildren();
+    const pageChrome = document.createElement("div");
+    pageChrome.className = "admin-page-preview-chrome";
+    pageChrome.textContent = item.status === "draft" ? "Draft page preview" : managedDetailUrl(item, true);
+    fullTarget.append(pageChrome);
 
     if (item.image) {
       const image = document.createElement("img");
@@ -661,9 +820,7 @@ document.addEventListener("DOMContentLoaded", () => {
       createTextElement("p", "lead", item.summary)
     );
 
-    item.body.split(/\n{2,}|\n/).filter(Boolean).slice(0, 4).forEach((line) => {
-      fullTarget.append(createTextElement("p", "", line.trim()));
-    });
+    appendAnnouncementBody(fullTarget, item.body, 5);
 
     if (item.ctaLabel && item.ctaUrl) {
       const cta = document.createElement("a");
@@ -672,11 +829,76 @@ document.addEventListener("DOMContentLoaded", () => {
       cta.textContent = item.ctaLabel;
       fullTarget.append(cta);
     }
+
+    const detailLink = document.querySelector("[data-admin-detail-link]");
+    if (detailLink) {
+      const canOpen = Boolean(item.originalId && item.status === "published");
+      detailLink.href = canOpen ? managedDetailUrl({ ...item, id: item.originalId }, true) : "#";
+      detailLink.toggleAttribute("aria-disabled", !canOpen);
+    }
+  }
+
+  function uniqueManagedId(item, existingItems, originalId) {
+    const base = item.slug || slugify([item.title, item.date].filter(Boolean).join("-")) || "announcement";
+    let id = base;
+    let count = 2;
+    while (existingItems.some((entry) => entry.id === id && entry.id !== originalId)) {
+      id = base + "-" + count;
+      count += 1;
+    }
+    return id;
+  }
+
+  function setFormValue(form, name, value) {
+    const field = form.elements[name];
+    if (!field) return;
+    if (field.type === "checkbox") field.checked = Boolean(value);
+    else field.value = value || "";
+  }
+
+  function setAdminFormMode(form, editing) {
+    document.querySelector("[data-admin-compose-title]").textContent = editing ? "Edit announcement" : "Create announcement";
+    document.querySelector("[data-admin-submit]").textContent = editing ? "Update announcement" : "Publish announcement";
+  }
+
+  function resetAdminCompose(form, resetFields = true) {
+    if (!form) return;
+    if (resetFields) form.reset();
+    setFormValue(form, "originalId", "");
+    setFormValue(form, "slug", "");
+    setFormValue(form, "date", new Date().toISOString().slice(0, 10));
+    setFormValue(form, "status", "published");
+    setFormValue(form, "accent", "forest");
+    setAdminFormMode(form, false);
+    const message = document.querySelector("[data-admin-compose-message]");
+    if (message) message.textContent = "";
+    renderAdminPreview(form);
+  }
+
+  function populateAdminForm(form, item) {
+    setFormValue(form, "originalId", item.id);
+    setFormValue(form, "title", item.title);
+    setFormValue(form, "slug", item.slug || item.id);
+    setFormValue(form, "date", item.date);
+    setFormValue(form, "status", item.status);
+    setFormValue(form, "category", item.category);
+    setFormValue(form, "accent", item.accent);
+    setFormValue(form, "summary", item.summary);
+    setFormValue(form, "body", item.body);
+    setFormValue(form, "image", item.image);
+    setFormValue(form, "gallery", item.gallery.join("\n"));
+    setFormValue(form, "ctaLabel", item.ctaLabel);
+    setFormValue(form, "ctaUrl", item.ctaUrl);
+    setFormValue(form, "featured", item.featured);
+    setAdminFormMode(form, true);
+    renderAdminPreview(form);
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function showAdminEditor() {
     document.querySelector("[data-admin-login-panel]")?.setAttribute("hidden", "");
     document.querySelector("[data-admin-editor]")?.removeAttribute("hidden");
+    renderAdminMetrics();
     renderAdminList();
   }
 
@@ -686,14 +908,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!loginForm && !composeForm) return;
 
     const dateInput = composeForm?.querySelector('input[name="date"]');
-    if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
     if (composeForm) {
+      resetAdminCompose(composeForm);
       renderAdminPreview(composeForm);
       composeForm.addEventListener("input", () => renderAdminPreview(composeForm));
       composeForm.addEventListener("reset", () => {
         window.setTimeout(() => {
-          if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
-          renderAdminPreview(composeForm);
+          resetAdminCompose(composeForm, false);
         }, 0);
       });
     }
@@ -738,29 +959,81 @@ document.addEventListener("DOMContentLoaded", () => {
 
     composeForm?.addEventListener("submit", (event) => {
       event.preventDefault();
-      const item = { ...collectComposeData(composeForm), id: String(Date.now()) };
+      const data = collectComposeData(composeForm);
+      const existingItems = loadManagedAnnouncements({ includeDrafts: true });
+      const originalId = data.originalId;
+      const existing = existingItems.find((item) => item.id === originalId);
+      const id = uniqueManagedId(data, existingItems, originalId);
+      const item = {
+        ...data,
+        id,
+        slug: id,
+        createdAt: existing?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      delete item.originalId;
 
       if (!item.title || !item.date || !item.summary || !item.body) return;
-      saveManagedAnnouncements([item, ...loadManagedAnnouncements()]);
-      composeForm.reset();
-      if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+      saveManagedAnnouncements([item, ...existingItems.filter((entry) => entry.id !== originalId && entry.id !== id)]);
+      resetAdminCompose(composeForm);
       const message = document.querySelector("[data-admin-compose-message]");
-      if (message) message.textContent = "Announcement published in this browser.";
+      if (message) message.textContent = item.status === "draft" ? "Draft saved in this browser." : "Announcement page published in this browser.";
+      renderAdminMetrics();
       renderAdminList();
       renderManagedAnnouncements();
-      renderAdminPreview(composeForm);
     });
 
     document.addEventListener("click", (event) => {
+      if (event.target.closest("[data-admin-new]")) {
+        resetAdminCompose(composeForm);
+        return;
+      }
+
+      const edit = event.target.closest("[data-admin-edit]");
+      if (edit) {
+        const item = loadManagedAnnouncements({ includeDrafts: true }).find((entry) => entry.id === edit.dataset.adminEdit);
+        if (item && composeForm) populateAdminForm(composeForm, item);
+        return;
+      }
+
       const remove = event.target.closest("[data-admin-delete]");
-      if (!remove) return;
-      saveManagedAnnouncements(loadManagedAnnouncements().filter((item) => item.id !== remove.dataset.adminDelete));
-      renderAdminList();
-      renderManagedAnnouncements();
+      if (remove) {
+        if (!window.confirm("Delete this announcement from this browser?")) return;
+        saveManagedAnnouncements(loadManagedAnnouncements({ includeDrafts: true }).filter((item) => item.id !== remove.dataset.adminDelete));
+        renderAdminMetrics();
+        renderAdminList();
+        renderManagedAnnouncements();
+        return;
+      }
+
+      if (event.target.closest("[data-admin-export]")) {
+        const json = document.querySelector("[data-admin-json]");
+        const message = document.querySelector("[data-admin-data-message]");
+        if (json) json.value = JSON.stringify(loadManagedAnnouncements({ includeDrafts: true }), null, 2);
+        if (message) message.textContent = "Export ready.";
+        return;
+      }
+
+      if (event.target.closest("[data-admin-import]")) {
+        const json = document.querySelector("[data-admin-json]");
+        const message = document.querySelector("[data-admin-data-message]");
+        try {
+          const parsed = JSON.parse(json?.value || "[]");
+          if (!Array.isArray(parsed)) throw new Error("Expected an array");
+          saveManagedAnnouncements(parsed);
+          renderAdminMetrics();
+          renderAdminList();
+          renderManagedAnnouncements();
+          if (message) message.textContent = "Imported announcements into this browser.";
+        } catch {
+          if (message) message.textContent = "Import failed. Paste valid exported JSON.";
+        }
+      }
     });
   }
 
   renderManagedAnnouncements();
+  renderManagedAnnouncementDetailPage();
   initAdminPage();
 
   const galleryTabs = document.querySelector(".gallery-team-tabs");
