@@ -243,11 +243,25 @@ function activeClass(rel, target) {
 
 function shell({ rel, title, description = "Northwest Collaborative Center brings music and education to all.", body, pageClass = "" }) {
   const prefix = prefixFor(rel);
-  const navLinks = nav
-    .map(([label, target]) => `<a class="nav-link${activeClass(rel, target)}" href="${hrefFor(rel, target)}">${label}</a>`)
-    .join("");
   const dropdownLinks = dropdownNav
     .map(([label, target, copy]) => `<a class="nav-dropdown-link${activeClass(rel, target)}" href="${hrefFor(rel, target)}"><span>${esc(label)}</span><small>${esc(copy)}</small></a>`)
+    .join("");
+  const dropdownActive = dropdownNav.some(([, target]) => activeClass(rel, target));
+  const navLinks = nav
+    .map(([label, target]) => {
+      if (label === "About") {
+        return `<div class="nav-dropdown-group">
+        <button class="nav-dropdown-toggle${dropdownActive ? " active" : ""}" type="button" aria-expanded="false" aria-haspopup="true">
+          <span>About</span>
+          <span aria-hidden="true">v</span>
+        </button>
+        <div class="nav-dropdown" role="menu">
+          ${dropdownLinks}
+        </div>
+      </div>`;
+      }
+      return `<a class="nav-link${activeClass(rel, target)}" href="${hrefFor(rel, target)}">${label}</a>`;
+    })
     .join("");
   const secondaryLinks = secondaryNav
     .map(([label, target]) => `<a href="${hrefFor(rel, target)}">${label}</a>`)
@@ -273,15 +287,6 @@ function shell({ rel, title, description = "Northwest Collaborative Center bring
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
     <nav class="site-nav" id="site-nav" aria-label="Primary navigation">
       ${navLinks}
-      <div class="nav-more">
-        <button class="nav-more-toggle" type="button" aria-expanded="false" aria-haspopup="true">
-          <span>More</span>
-          <span aria-hidden="true">v</span>
-        </button>
-        <div class="nav-dropdown" role="menu">
-          ${dropdownLinks}
-        </div>
-      </div>
     </nav>
   </header>
   <main>

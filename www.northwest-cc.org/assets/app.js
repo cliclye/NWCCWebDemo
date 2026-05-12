@@ -6,25 +6,25 @@ document.addEventListener("DOMContentLoaded", () => {
     toggle.setAttribute("aria-expanded", String(open));
   });
 
-  const navMore = document.querySelector(".nav-more");
-  const navMoreToggle = document.querySelector(".nav-more-toggle");
-  function setMoreOpen(open) {
-    navMore?.classList.toggle("is-open", open);
-    navMoreToggle?.setAttribute("aria-expanded", String(open));
+  const navDropdownGroup = document.querySelector(".nav-dropdown-group");
+  const navDropdownToggle = document.querySelector(".nav-dropdown-toggle");
+  function setNavDropdownOpen(open) {
+    navDropdownGroup?.classList.toggle("is-open", open);
+    navDropdownToggle?.setAttribute("aria-expanded", String(open));
   }
-  navMoreToggle?.addEventListener("click", (event) => {
+  navDropdownToggle?.addEventListener("click", (event) => {
     event.stopPropagation();
-    setMoreOpen(!navMore?.classList.contains("is-open"));
+    setNavDropdownOpen(!navDropdownGroup?.classList.contains("is-open"));
   });
   document.addEventListener("click", (event) => {
-    if (!event.target.closest(".nav-more")) setMoreOpen(false);
+    if (!event.target.closest(".nav-dropdown-group")) setNavDropdownOpen(false);
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") setMoreOpen(false);
+    if (event.key === "Escape") setNavDropdownOpen(false);
   });
   nav?.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => {
-      setMoreOpen(false);
+      setNavDropdownOpen(false);
       nav.classList.remove("open");
       toggle?.setAttribute("aria-expanded", "false");
     });
