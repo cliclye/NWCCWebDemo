@@ -350,6 +350,30 @@ function buildHome() {
         ${stat("Focus", "Music + Education")}
       </div>
     </section>
+    <section class="section apple-flow" aria-labelledby="flow-title">
+      <div class="flow-copy reveal">
+        <p class="eyebrow">A cleaner way to connect</p>
+        <h2 id="flow-title">Learn. Perform. Serve.</h2>
+        <p>NWCC brings the work into focus: students build skill, share music in community spaces, and support younger learners through collaborative education.</p>
+      </div>
+      <div class="flow-steps" aria-label="NWCC program flow">
+        <article class="flow-step reveal">
+          <span>01</span>
+          <h3>Practice with purpose</h3>
+          <p>Weekly chamber, choir, and enrichment sessions keep the experience focused and welcoming.</p>
+        </article>
+        <article class="flow-step reveal">
+          <span>02</span>
+          <h3>Make service visible</h3>
+          <p>Concerts, tutoring, and community programs turn student growth into local impact.</p>
+        </article>
+        <article class="flow-step reveal">
+          <span>03</span>
+          <h3>Keep everyone updated</h3>
+          <p>Announcements, schedules, and program notes are easy to scan from one simple place.</p>
+        </article>
+      </div>
+    </section>
     ${updatesSectionHtml(updateLines)}
     <section class="section">
       <div class="section-heading">
@@ -357,6 +381,7 @@ function buildHome() {
         <h2>Latest from NWCC</h2>
         <a class="text-link" href="announcements.html">View all announcements</a>
       </div>
+      <div class="managed-announcements story-grid" data-managed-announcements data-managed-limit="2" hidden></div>
       <div class="story-grid">${announcements.slice(0, 3).map((item) => announcementCard(item, "index.html")).join("")}</div>
     </section>
     <section class="section about-preview">
@@ -407,6 +432,7 @@ function buildAnnouncements() {
       <h1>Announcements</h1>
       <p>Recent program notes, practice updates, performance announcements, and newsletters from NWCC.</p>
     </section>
+    <section class="section story-list managed-announcements" data-managed-announcements hidden></section>
     <section class="section story-list">${announcements.map((item) => announcementCard(item, "announcements.html")).join("")}</section>`;
   write("announcements.html", shell({ rel: "announcements.html", title: "Announcements | NWCC", body }));
 
@@ -716,9 +742,100 @@ function buildSimplePages() {
   }
 }
 
+function buildAdmin() {
+  const existingAdmin = path.join(root, "admin.html");
+  if (fs.existsSync(existingAdmin)) {
+    write("admin.html", fs.readFileSync(existingAdmin, "utf8"));
+    return;
+  }
+
+  write("admin.html", `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin | NWCC</title>
+  <meta name="description" content="NWCC admin announcement editor.">
+  <link rel="icon" sizes="192x192" href="${esc(logo)}" type="image/png">
+  <link rel="stylesheet" href="assets/app.css">
+  <script defer src="assets/app.js"></script>
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <section class="admin-panel admin-login-panel" data-admin-login-panel>
+      <a class="back-link" href="index.html">Back to site</a>
+      <p class="eyebrow">Hidden admin</p>
+      <h1>NWCC Admin</h1>
+      <p class="lead">Sign in to create announcements for this static site preview.</p>
+      <form class="admin-form" data-admin-login>
+        <label>
+          <span>Username</span>
+          <input name="username" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button class="button primary" type="submit">Sign in</button>
+        <p class="form-message" role="status" data-admin-login-message></p>
+      </form>
+    </section>
+
+    <section class="admin-panel admin-editor-panel" data-admin-editor hidden>
+      <div class="admin-editor-head">
+        <div>
+          <p class="eyebrow">Announcement editor</p>
+          <h1>Create an announcement</h1>
+        </div>
+        <button class="button ghost-dark" type="button" data-admin-logout>Sign out</button>
+      </div>
+      <form class="admin-form admin-compose" data-admin-compose>
+        <label>
+          <span>Title</span>
+          <input name="title" required>
+        </label>
+        <label>
+          <span>Date</span>
+          <input type="date" name="date" required>
+        </label>
+        <label>
+          <span>Short summary</span>
+          <textarea name="summary" rows="3" required></textarea>
+        </label>
+        <label>
+          <span>Announcement body</span>
+          <textarea name="body" rows="8" required></textarea>
+        </label>
+        <label>
+          <span>Image URL</span>
+          <input name="image" type="url" placeholder="https://...">
+        </label>
+        <div class="admin-actions">
+          <button class="button primary" type="submit">Publish announcement</button>
+          <button class="button ghost-dark" type="reset">Clear</button>
+        </div>
+        <p class="form-message" role="status" data-admin-compose-message></p>
+      </form>
+
+      <section class="admin-list-block">
+        <div class="section-heading">
+          <p class="eyebrow">Saved locally</p>
+          <h2>Drafted announcements</h2>
+        </div>
+        <div class="admin-announcement-list" data-admin-announcement-list></div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
+`);
+}
+
 function writeAssets() {
-  fs.writeFileSync(path.join(root, "assets", "app.css"), css);
-  fs.writeFileSync(path.join(root, "assets", "app.js"), js);
+  const currentCss = path.join(root, "assets", "app.css");
+  const currentJs = path.join(root, "assets", "app.js");
+  fs.writeFileSync(currentCss, fs.existsSync(currentCss) ? fs.readFileSync(currentCss, "utf8") : css);
+  fs.writeFileSync(currentJs, fs.existsSync(currentJs) ? fs.readFileSync(currentJs, "utf8") : js);
 }
 
 const css = `:root {
@@ -1403,5 +1520,6 @@ buildProjects();
 buildGallery();
 buildContact();
 buildSimplePages();
+buildAdmin();
 
 console.log("Rebuilt static site from source materials.");

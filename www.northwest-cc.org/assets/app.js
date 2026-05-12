@@ -6,6 +6,33 @@ document.addEventListener("DOMContentLoaded", () => {
     toggle.setAttribute("aria-expanded", String(open));
   });
 
+  const header = document.querySelector(".site-header");
+  const progress = document.createElement("div");
+  progress.className = "scroll-progress";
+  document.body.prepend(progress);
+
+  function syncScrollEffects() {
+    const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+    const scrollAmount = window.scrollY / maxScroll;
+    progress.style.transform = "scaleX(" + Math.min(Math.max(scrollAmount, 0), 1) + ")";
+    document.documentElement.style.setProperty("--scroll-y", String(Math.round(window.scrollY)));
+    header?.classList.toggle("is-compact", window.scrollY > 20);
+  }
+
+  let scrollTicking = false;
+  const requestScrollSync = () => {
+    if (scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
+      syncScrollEffects();
+      scrollTicking = false;
+    });
+  };
+
+  syncScrollEffects();
+  window.addEventListener("scroll", requestScrollSync, { passive: true });
+  window.addEventListener("resize", requestScrollSync);
+
   const observer = "IntersectionObserver" in window ? new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
@@ -24,6 +51,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let activeZoom = null;
   let activeUpdatesZoom = null;
+
+  function applyPremiumCardTilt(root = document) {
+    if (reducedMotion.matches || !window.matchMedia("(pointer: fine)").matches) return;
+    const tiltSelector = ".story-card, .project-card, .person-card, .image-card, .updates-teaser, .flow-step, .cta-band";
+    root.querySelectorAll(tiltSelector).forEach((element) => {
+      if (element.dataset.tiltBound === "true") return;
+      element.dataset.tiltBound = "true";
+      element.classList.add("tilt-ready");
+      element.addEventListener("pointermove", (event) => {
+        const rect = element.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5;
+        const y = (event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5;
+        element.style.setProperty("--tilt-y", (x * 5.5).toFixed(2) + "deg");
+        element.style.setProperty("--tilt-x", (-y * 5.5).toFixed(2) + "deg");
+      });
+      element.addEventListener("pointerleave", () => {
+        element.style.setProperty("--tilt-y", "0deg");
+        element.style.setProperty("--tilt-x", "0deg");
+      });
+    });
+  }
+
+  applyPremiumCardTilt();
 
   function setPanelRect(panel, rect, radius) {
     panel.style.width = rect.width + "px";
@@ -321,6 +371,397 @@ document.addEventListener("DOMContentLoaded", () => {
       form.reset();
     });
   });
+
+  const ADMIN_STORAGE_KEY = "nwcc-admin-announcements";
+  const ADMIN_SESSION_KEY = "nwcc-admin-session";
+  const ADMIN_ATTEMPTS_KEY = "nwcc-admin-login-attempts";
+  const ADMIN_LOCK_KEY = "nwcc-admin-login-lock-until";
+  const ADMIN_USERNAME = "nwcc-admin";
+  const ADMIN_PASSWORD_HASH = "0f6ad2da2a62f22d0313898f922f5645f58c8859b0e7f2b2acfa3293b8e5f48b";
+  const MANAGED_ACCENTS = {
+    forest: "#007a5a",
+    blue: "#315f8c",
+    gold: "#aa7a2a",
+    coral: "#b85d49",
+  };
+
+  function loadManagedAnnouncements() {
+    try {
+      return JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY) || "[]")
+        .filter((item) => item && item.title && item.date)
+        .sort((a, b) => {
+          const featuredRank = Number(Boolean(b.featured)) - Number(Boolean(a.featured));
+          if (featuredRank) return featuredRank;
+          const dateRank = String(b.date).localeCompare(String(a.date));
+          if (dateRank) return dateRank;
+          return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+        });
+    } catch {
+      return [];
+    }
+  }
+
+  function saveManagedAnnouncements(items) {
+    localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(items));
+  }
+
+  async function sha256(value) {
+    const bytes = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  function managedAccent(value) {
+    return MANAGED_ACCENTS[value] || MANAGED_ACCENTS.forest;
+  }
+
+  function safeUrl(value, allowedProtocols = ["http:", "https:"]) {
+    const trimmed = String(value || "").trim();
+    if (!trimmed) return "";
+    try {
+      const url = new URL(trimmed, location.href);
+      if (!allowedProtocols.includes(url.protocol)) return "";
+      return url.href;
+    } catch {
+      return "";
+    }
+  }
+
+  function formatAnnouncementDate(value) {
+    const date = new Date(value + "T00:00:00");
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  }
+
+  function createTextElement(tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    element.textContent = text;
+    return element;
+  }
+
+  function openManagedAnnouncement(item) {
+    const dialog = document.createElement("div");
+    dialog.className = "announcement-dialog";
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+
+    const panel = document.createElement("article");
+    panel.className = "announcement-dialog-panel";
+    panel.style.setProperty("--managed-accent", managedAccent(item.accent));
+
+    const imageUrl = safeUrl(item.image);
+    if (imageUrl) {
+      const image = document.createElement("img");
+      image.src = imageUrl;
+      image.alt = item.title;
+      panel.append(image);
+    }
+
+    panel.append(
+      createTextElement("p", "eyebrow", (item.category || "Announcement") + " - " + formatAnnouncementDate(item.date)),
+      createTextElement("h2", "", item.title)
+    );
+
+    if (item.summary) panel.append(createTextElement("p", "lead", item.summary));
+    String(item.body || "").split(/\n{2,}|\n/).filter(Boolean).forEach((line) => {
+      panel.append(createTextElement("p", "", line.trim()));
+    });
+
+    const actions = document.createElement("div");
+    actions.className = "announcement-dialog-actions";
+
+    const ctaUrl = safeUrl(item.ctaUrl, ["http:", "https:", "mailto:", "tel:"]);
+    if (ctaUrl && item.ctaLabel) {
+      const cta = document.createElement("a");
+      cta.className = "button primary";
+      cta.href = ctaUrl;
+      cta.textContent = item.ctaLabel;
+      actions.append(cta);
+    }
+
+    const close = document.createElement("button");
+    close.className = "button ghost-dark announcement-dialog-close";
+    close.type = "button";
+    close.textContent = "Close";
+    actions.append(close);
+    panel.append(actions);
+    dialog.append(panel);
+
+    const closeDialog = () => {
+      document.removeEventListener("keydown", onEscape);
+      dialog.remove();
+    };
+    const onEscape = (event) => {
+      if (event.key === "Escape") closeDialog();
+    };
+
+    close.addEventListener("click", closeDialog);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) closeDialog();
+    });
+    document.addEventListener("keydown", onEscape);
+    document.body.append(dialog);
+    close.focus();
+  }
+
+  function createManagedCard(item) {
+    const article = document.createElement("article");
+    article.className = "story-card managed-story reveal is-visible";
+    article.style.setProperty("--managed-accent", managedAccent(item.accent));
+    if (item.featured) article.classList.add("is-featured");
+
+    const media = document.createElement("button");
+    media.className = "story-media managed-open";
+    media.type = "button";
+    media.dataset.managedOpen = item.id;
+    const imageUrl = safeUrl(item.image);
+    if (imageUrl) {
+      const image = document.createElement("img");
+      image.src = imageUrl;
+      image.alt = item.title;
+      image.loading = "lazy";
+      media.append(image);
+    } else {
+      media.textContent = "NWCC";
+    }
+
+    const content = document.createElement("div");
+    content.className = "story-content";
+    if (item.featured) content.append(createTextElement("span", "managed-badge", "Featured"));
+    content.append(
+      createTextElement("p", "eyebrow", (item.category || "Announcement") + " - " + formatAnnouncementDate(item.date)),
+      createTextElement("h2", "", item.title),
+      createTextElement("p", "", item.summary || "")
+    );
+
+    const open = document.createElement("button");
+    open.className = "text-link managed-open";
+    open.type = "button";
+    open.dataset.managedOpen = item.id;
+    open.textContent = "Read announcement";
+    content.append(open);
+
+    article.append(media, content);
+    return article;
+  }
+
+  function renderManagedAnnouncements() {
+    const items = loadManagedAnnouncements();
+    document.querySelectorAll("[data-managed-announcements]").forEach((container) => {
+      const limit = Number(container.dataset.managedLimit || items.length);
+      const visibleItems = items.slice(0, limit || items.length);
+      container.replaceChildren();
+      container.hidden = visibleItems.length === 0;
+      visibleItems.forEach((item) => container.append(createManagedCard(item)));
+      applyPremiumCardTilt(container);
+    });
+  }
+
+  document.addEventListener("click", (event) => {
+    const opener = event.target.closest("[data-managed-open]");
+    if (!opener) return;
+    const item = loadManagedAnnouncements().find((entry) => entry.id === opener.dataset.managedOpen);
+    if (item) openManagedAnnouncement(item);
+  });
+
+  function renderAdminList() {
+    const list = document.querySelector("[data-admin-announcement-list]");
+    if (!list) return;
+    const items = loadManagedAnnouncements();
+    list.replaceChildren();
+
+    if (!items.length) {
+      list.append(createTextElement("p", "", "No admin announcements have been published in this browser."));
+      return;
+    }
+
+    items.forEach((item) => {
+      const row = document.createElement("article");
+      row.className = "admin-list-item";
+      const copy = document.createElement("div");
+      const meta = document.createElement("div");
+      meta.className = "admin-list-meta";
+      meta.append(createTextElement("span", "admin-list-chip", item.category || "Announcement"));
+      meta.append(createTextElement("span", "admin-list-chip", formatAnnouncementDate(item.date)));
+      if (item.featured) meta.append(createTextElement("span", "admin-list-chip", "Featured"));
+      copy.append(
+        meta,
+        createTextElement("h3", "", item.title),
+        createTextElement("p", "", item.summary || "")
+      );
+      const remove = document.createElement("button");
+      remove.className = "admin-delete";
+      remove.type = "button";
+      remove.dataset.adminDelete = item.id;
+      remove.textContent = "Delete";
+      row.append(copy, remove);
+      list.append(row);
+    });
+  }
+
+  function collectComposeData(form) {
+    const data = new FormData(form);
+    return {
+      id: "__preview__",
+      title: String(data.get("title") || "").trim(),
+      date: String(data.get("date") || "").trim(),
+      category: String(data.get("category") || "").trim(),
+      accent: String(data.get("accent") || "forest").trim(),
+      summary: String(data.get("summary") || "").trim(),
+      body: String(data.get("body") || "").trim(),
+      image: safeUrl(data.get("image")),
+      ctaLabel: String(data.get("ctaLabel") || "").trim(),
+      ctaUrl: safeUrl(data.get("ctaUrl"), ["http:", "https:", "mailto:", "tel:"]),
+      featured: data.get("featured") === "on",
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  function previewItem(item) {
+    return {
+      ...item,
+      title: item.title || "Announcement title",
+      date: item.date || new Date().toISOString().slice(0, 10),
+      category: item.category || "Announcement",
+      summary: item.summary || "A short summary will appear here so families can quickly scan the update.",
+      body: item.body || "Write the full announcement body here. Line breaks become clean paragraphs in the final announcement.",
+    };
+  }
+
+  function renderAdminPreview(form) {
+    const cardTarget = document.querySelector("[data-admin-card-preview]");
+    const fullTarget = document.querySelector("[data-admin-full-preview]");
+    if (!cardTarget || !fullTarget || !form) return;
+
+    const item = previewItem(collectComposeData(form));
+    cardTarget.replaceChildren();
+    const card = createManagedCard(item);
+    card.querySelectorAll("[data-managed-open]").forEach((control) => {
+      control.removeAttribute("data-managed-open");
+      control.setAttribute("aria-disabled", "true");
+      if ("disabled" in control) control.disabled = true;
+    });
+    cardTarget.append(card);
+    applyPremiumCardTilt(cardTarget);
+
+    fullTarget.style.setProperty("--managed-accent", managedAccent(item.accent));
+    fullTarget.replaceChildren();
+
+    if (item.image) {
+      const image = document.createElement("img");
+      image.src = item.image;
+      image.alt = item.title;
+      fullTarget.append(image);
+    }
+
+    fullTarget.append(
+      createTextElement("p", "eyebrow", item.category + " - " + formatAnnouncementDate(item.date)),
+      createTextElement("h2", "", item.title),
+      createTextElement("p", "lead", item.summary)
+    );
+
+    item.body.split(/\n{2,}|\n/).filter(Boolean).slice(0, 4).forEach((line) => {
+      fullTarget.append(createTextElement("p", "", line.trim()));
+    });
+
+    if (item.ctaLabel && item.ctaUrl) {
+      const cta = document.createElement("a");
+      cta.className = "button primary";
+      cta.href = item.ctaUrl;
+      cta.textContent = item.ctaLabel;
+      fullTarget.append(cta);
+    }
+  }
+
+  function showAdminEditor() {
+    document.querySelector("[data-admin-login-panel]")?.setAttribute("hidden", "");
+    document.querySelector("[data-admin-editor]")?.removeAttribute("hidden");
+    renderAdminList();
+  }
+
+  function initAdminPage() {
+    const loginForm = document.querySelector("[data-admin-login]");
+    const composeForm = document.querySelector("[data-admin-compose]");
+    if (!loginForm && !composeForm) return;
+
+    const dateInput = composeForm?.querySelector('input[name="date"]');
+    if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+    if (composeForm) {
+      renderAdminPreview(composeForm);
+      composeForm.addEventListener("input", () => renderAdminPreview(composeForm));
+      composeForm.addEventListener("reset", () => {
+        window.setTimeout(() => {
+          if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+          renderAdminPreview(composeForm);
+        }, 0);
+      });
+    }
+
+    if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "true") showAdminEditor();
+
+    loginForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const data = new FormData(loginForm);
+      const message = document.querySelector("[data-admin-login-message]");
+      const lockUntil = Number(sessionStorage.getItem(ADMIN_LOCK_KEY) || 0);
+      if (lockUntil > Date.now()) {
+        const seconds = Math.ceil((lockUntil - Date.now()) / 1000);
+        if (message) message.textContent = "Too many attempts. Try again in " + seconds + " seconds.";
+        return;
+      }
+      const passwordHash = crypto.subtle ? await sha256(String(data.get("password") || "")) : "";
+      if (data.get("username") === ADMIN_USERNAME && passwordHash === ADMIN_PASSWORD_HASH) {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+        sessionStorage.removeItem(ADMIN_ATTEMPTS_KEY);
+        sessionStorage.removeItem(ADMIN_LOCK_KEY);
+        loginForm.reset();
+        showAdminEditor();
+        return;
+      }
+      const attempts = Number(sessionStorage.getItem(ADMIN_ATTEMPTS_KEY) || 0) + 1;
+      sessionStorage.setItem(ADMIN_ATTEMPTS_KEY, String(attempts));
+      if (attempts >= 5) {
+        sessionStorage.setItem(ADMIN_LOCK_KEY, String(Date.now() + 5 * 60 * 1000));
+        sessionStorage.removeItem(ADMIN_ATTEMPTS_KEY);
+        if (message) message.textContent = "Too many attempts. Try again in 5 minutes.";
+        return;
+      }
+      if (message) message.textContent = "The username or password is incorrect. Attempts left: " + (5 - attempts) + ".";
+    });
+
+    document.querySelector("[data-admin-logout]")?.addEventListener("click", () => {
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+      document.querySelector("[data-admin-editor]")?.setAttribute("hidden", "");
+      document.querySelector("[data-admin-login-panel]")?.removeAttribute("hidden");
+    });
+
+    composeForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const item = { ...collectComposeData(composeForm), id: String(Date.now()) };
+
+      if (!item.title || !item.date || !item.summary || !item.body) return;
+      saveManagedAnnouncements([item, ...loadManagedAnnouncements()]);
+      composeForm.reset();
+      if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+      const message = document.querySelector("[data-admin-compose-message]");
+      if (message) message.textContent = "Announcement published in this browser.";
+      renderAdminList();
+      renderManagedAnnouncements();
+      renderAdminPreview(composeForm);
+    });
+
+    document.addEventListener("click", (event) => {
+      const remove = event.target.closest("[data-admin-delete]");
+      if (!remove) return;
+      saveManagedAnnouncements(loadManagedAnnouncements().filter((item) => item.id !== remove.dataset.adminDelete));
+      renderAdminList();
+      renderManagedAnnouncements();
+    });
+  }
+
+  renderManagedAnnouncements();
+  initAdminPage();
 
   const galleryTabs = document.querySelector(".gallery-team-tabs");
   if (galleryTabs) {

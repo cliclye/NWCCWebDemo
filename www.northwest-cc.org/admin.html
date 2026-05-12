@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin | NWCC</title>
+  <meta name="description" content="NWCC admin announcement editor.">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" sizes="192x192" href="https://static.wixstatic.com/media/feb1f2_dec2623faf084647926450d9868b31bd~mv2.png/v1/fill/w_93,h_93,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/NWCC%20Logo.png" type="image/png">
+  <link rel="stylesheet" href="assets/app.css">
+  <script defer src="assets/app.js"></script>
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <section class="admin-panel admin-login-panel" data-admin-login-panel>
+      <a class="back-link" href="index.html">Back to site</a>
+      <p class="eyebrow">Hidden admin</p>
+      <h1>NWCC Admin</h1>
+      <p class="lead">Sign in to create announcements for this static site preview.</p>
+      <p class="admin-security-note">Static preview only: published announcements are saved in this browser. Production publishing needs server-side auth and shared storage.</p>
+      <form class="admin-form" data-admin-login>
+        <label>
+          <span>Username</span>
+          <input name="username" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button class="button primary" type="submit">Sign in</button>
+        <p class="form-message" role="status" data-admin-login-message></p>
+      </form>
+    </section>
+
+    <section class="admin-panel admin-editor-panel" data-admin-editor hidden>
+      <div class="admin-editor-head">
+        <div>
+          <p class="eyebrow">Announcement editor</p>
+          <h1>Create an announcement</h1>
+        </div>
+        <button class="button ghost-dark" type="button" data-admin-logout>Sign out</button>
+      </div>
+      <p class="admin-security-note">This editor avoids SQL injection because there is no SQL layer, and it renders announcement text with safe text nodes. It is still not secure for production because browser code can be inspected or bypassed.</p>
+
+      <div class="admin-workbench">
+        <form class="admin-form admin-compose" data-admin-compose>
+          <label class="admin-span-2">
+            <span>Title</span>
+            <input name="title" required>
+          </label>
+          <label>
+            <span>Date</span>
+            <input type="date" name="date" required>
+          </label>
+          <label>
+            <span>Category</span>
+            <input name="category" list="announcement-categories" placeholder="Program update">
+            <datalist id="announcement-categories">
+              <option value="Program update"></option>
+              <option value="Practice notice"></option>
+              <option value="Concert"></option>
+              <option value="Newsletter"></option>
+              <option value="Volunteer"></option>
+            </datalist>
+          </label>
+          <label>
+            <span>Accent</span>
+            <select name="accent">
+              <option value="forest">Forest</option>
+              <option value="blue">Blue</option>
+              <option value="gold">Gold</option>
+              <option value="coral">Coral</option>
+            </select>
+          </label>
+          <label>
+            <span>Image URL</span>
+            <input name="image" type="url" placeholder="https://...">
+          </label>
+          <label>
+            <span>Button text</span>
+            <input name="ctaLabel" placeholder="Read more">
+          </label>
+          <label>
+            <span>Button URL</span>
+            <input name="ctaUrl" type="url" placeholder="https://...">
+          </label>
+          <label class="admin-span-2">
+            <span>Short summary</span>
+            <textarea name="summary" rows="3" required></textarea>
+          </label>
+          <label class="admin-span-2">
+            <span>Announcement body</span>
+            <textarea name="body" rows="8" required></textarea>
+          </label>
+          <label class="admin-checkbox admin-span-2">
+            <input type="checkbox" name="featured">
+            <span>Feature this announcement at the top</span>
+          </label>
+          <div class="admin-actions">
+            <button class="button primary" type="submit">Publish announcement</button>
+            <button class="button ghost-dark" type="reset">Clear</button>
+          </div>
+          <p class="form-message" role="status" data-admin-compose-message></p>
+        </form>
+
+        <aside class="admin-preview-panel" aria-live="polite">
+          <p class="eyebrow">Live preview</p>
+          <div class="admin-card-preview" data-admin-card-preview></div>
+          <div class="admin-full-preview" data-admin-full-preview></div>
+        </aside>
+      </div>
+
+      <section class="admin-list-block">
+        <div class="section-heading">
+          <p class="eyebrow">Browser storage</p>
+          <h2>Published in this browser</h2>
+        </div>
+        <div class="admin-announcement-list" data-admin-announcement-list></div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
