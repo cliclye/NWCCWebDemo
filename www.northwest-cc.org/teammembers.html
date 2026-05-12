@@ -18,6 +18,15 @@
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
     <nav class="site-nav" id="site-nav" aria-label="Primary navigation">
       <a class="nav-link" href="index.html">Home</a><a class="nav-link" href="announcements.html">Announcements</a><a class="nav-link" href="about-us.html">About</a><a class="nav-link" href="projects.html">Performances</a><a class="nav-link" href="gallery.html">Gallery</a><a class="nav-link" href="contact-us.html">Contact</a>
+      <div class="nav-more">
+        <button class="nav-more-toggle" type="button" aria-expanded="false" aria-haspopup="true">
+          <span>More</span>
+          <span aria-hidden="true">v</span>
+        </button>
+        <div class="nav-dropdown" role="menu">
+          <a class="nav-dropdown-link" href="announcements.html"><span>Announcements</span><small>Updates, newsletters, and program notes</small></a><a class="nav-dropdown-link" href="about-us.html"><span>About Us</span><small>Mission, equity work, and NWCC story</small></a><a class="nav-dropdown-link" href="team-3.html"><span>Board of Directors</span><small>President, vice president, and treasurer</small></a><a class="nav-dropdown-link active" href="teammembers.html"><span>Team</span><small>Program, teaching, technology, chamber, and choir</small></a><a class="nav-dropdown-link" href="registration.html"><span>Registration</span><small>Combined chamber and choir signup</small></a><a class="nav-dropdown-link" href="donation.html"><span>Donation</span><small>Support NWCC through Zelle</small></a>
+        </div>
+      </div>
     </nav>
   </header>
   <main>
@@ -25,37 +34,48 @@
       <section class="page-title">
         <p class="eyebrow">Teams</p>
         <h1>Dedication. Expertise. Passion.</h1>
+        <p>Meet the people supporting NWCC programs across chamber, choir, enrichment, education, and technology.</p>
       </section>
-      <section class="section people-grid">
-        <article class="person-card reveal">
-          <img src="https://static.wixstatic.com/media/fe6779_6f511451a67745deaec8c389c6fb91e7~mv2.jpg/v1/fill/w_344,h_344,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_2698_edited.jpg" alt="Jeongwon Hyun" loading="lazy">
-          <p class="eyebrow">Education Team</p>
-          <h2>Jeongwon Hyun</h2>
-          <p>Education Program Development</p>
-        </article>
-        <article class="person-card reveal">
-          <img src="https://static.wixstatic.com/media/fe6779_f4083a32fb904bbbab10c0d10aced799~mv2.png/v1/fill/w_344,h_344,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_2698_edited.png" alt="Ashley Sim" loading="lazy">
-          <p class="eyebrow">Enrichment Team</p>
-          <h2>Ashley Sim</h2>
-          <p>Enrichment Lead</p>
-        </article>
-        <article class="person-card reveal">
-          <img src="https://static.wixstatic.com/media/d6d5ff_2ea7a9592d674751a9ffb164e27cb51f~mv2.jpg/v1/fill/w_344,h_344,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_2698_edited.jpg" alt="Tom Wang" loading="lazy">
-          <p class="eyebrow">Technology Team</p>
-          <h2>Tom Wang</h2>
-          <p>Website Developer</p>
-        </article>
-        <article class="person-card reveal">
+      <section class="section team-grid">
+        <article class="team-card person-card reveal">
           <img src="https://static.wixstatic.com/media/d6d5ff_a0294cd1f7184acaa898f7834940571e~mv2.jpg/v1/fill/w_344,h_344,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_2698_edited.jpg" alt="YongWoon Chung" loading="lazy">
-          <p class="eyebrow">Chamber Team</p>
-          <h2>YongWoon Chung</h2>
-          <p>Conductor</p>
+          <div>
+            <p class="eyebrow">Chamber Team</p>
+            <h2>YongWoon Chung</h2>
+            <p>Conductor</p>
+          </div>
         </article>
-        <article class="person-card reveal">
+        <article class="team-card person-card reveal">
+          <img src="https://static.wixstatic.com/media/fe6779_6f511451a67745deaec8c389c6fb91e7~mv2.jpg/v1/fill/w_344,h_344,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_2698_edited.jpg" alt="Jeongwon Hyun" loading="lazy">
+          <div>
+            <p class="eyebrow">Education Team</p>
+            <h2>Jeongwon Hyun</h2>
+            <p>Education Program Development</p>
+          </div>
+        </article>
+        <article class="team-card person-card reveal">
           <img src="https://static.wixstatic.com/media/fe6779_dda453e69eed41cd9caa7edad9c3e800~mv2.jpg/v1/fill/w_344,h_344,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_2698_edited.jpg" alt="Sim" loading="lazy">
-          <p class="eyebrow">Choir Team</p>
-          <h2>Sim</h2>
-          <p>Choir Instructor</p>
+          <div>
+            <p class="eyebrow">Choir Team</p>
+            <h2>Sim</h2>
+            <p>Choir Instructor</p>
+          </div>
+        </article>
+        <article class="team-card person-card reveal">
+          <img src="https://static.wixstatic.com/media/fe6779_f4083a32fb904bbbab10c0d10aced799~mv2.png/v1/fill/w_344,h_344,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_2698_edited.png" alt="Ashley Sim" loading="lazy">
+          <div>
+            <p class="eyebrow">Enrichment Team</p>
+            <h2>Ashley Sim</h2>
+            <p>Enrichment Lead</p>
+          </div>
+        </article>
+        <article class="team-card person-card reveal">
+          <img src="https://static.wixstatic.com/media/d6d5ff_2ea7a9592d674751a9ffb164e27cb51f~mv2.jpg/v1/fill/w_344,h_344,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_2698_edited.jpg" alt="Tom Wang" loading="lazy">
+          <div>
+            <p class="eyebrow">Technology Team</p>
+            <h2>Tom Wang</h2>
+            <p>Website Developer</p>
+          </div>
         </article></section>
   </main>
   <footer class="site-footer">

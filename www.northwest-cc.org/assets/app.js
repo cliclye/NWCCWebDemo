@@ -6,6 +6,30 @@ document.addEventListener("DOMContentLoaded", () => {
     toggle.setAttribute("aria-expanded", String(open));
   });
 
+  const navMore = document.querySelector(".nav-more");
+  const navMoreToggle = document.querySelector(".nav-more-toggle");
+  function setMoreOpen(open) {
+    navMore?.classList.toggle("is-open", open);
+    navMoreToggle?.setAttribute("aria-expanded", String(open));
+  }
+  navMoreToggle?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setMoreOpen(!navMore?.classList.contains("is-open"));
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".nav-more")) setMoreOpen(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setMoreOpen(false);
+  });
+  nav?.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      setMoreOpen(false);
+      nav.classList.remove("open");
+      toggle?.setAttribute("aria-expanded", "false");
+    });
+  });
+
   const header = document.querySelector(".site-header");
   const progress = document.createElement("div");
   progress.className = "scroll-progress";

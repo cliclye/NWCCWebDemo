@@ -21,6 +21,15 @@ const secondaryNav = [
   ["Board", "team-3.html"],
 ];
 
+const dropdownNav = [
+  ["Announcements", "announcements.html", "Updates, newsletters, and program notes"],
+  ["About Us", "about-us.html", "Mission, equity work, and NWCC story"],
+  ["Board of Directors", "team-3.html", "President, vice president, and treasurer"],
+  ["Team", "teammembers.html", "Program, teaching, technology, chamber, and choir"],
+  ["Registration", "registration.html", "Combined chamber and choir signup"],
+  ["Donation", "donation.html", "Support NWCC through Zelle"],
+];
+
 const commonLines = new Set([
   "NorthWest Collaborative Center",
   "Home",
@@ -237,6 +246,9 @@ function shell({ rel, title, description = "Northwest Collaborative Center bring
   const navLinks = nav
     .map(([label, target]) => `<a class="nav-link${activeClass(rel, target)}" href="${hrefFor(rel, target)}">${label}</a>`)
     .join("");
+  const dropdownLinks = dropdownNav
+    .map(([label, target, copy]) => `<a class="nav-dropdown-link${activeClass(rel, target)}" href="${hrefFor(rel, target)}"><span>${esc(label)}</span><small>${esc(copy)}</small></a>`)
+    .join("");
   const secondaryLinks = secondaryNav
     .map(([label, target]) => `<a href="${hrefFor(rel, target)}">${label}</a>`)
     .join("");
@@ -261,6 +273,15 @@ function shell({ rel, title, description = "Northwest Collaborative Center bring
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
     <nav class="site-nav" id="site-nav" aria-label="Primary navigation">
       ${navLinks}
+      <div class="nav-more">
+        <button class="nav-more-toggle" type="button" aria-expanded="false" aria-haspopup="true">
+          <span>More</span>
+          <span aria-hidden="true">v</span>
+        </button>
+        <div class="nav-dropdown" role="menu">
+          ${dropdownLinks}
+        </div>
+      </div>
     </nav>
   </header>
   <main>
@@ -680,15 +701,21 @@ function buildSimplePages() {
     rel: "registration.html",
     title: "Registration | NWCC",
     body: `
-      <section class="simple-hero">
-        <div>
+      <section class="simple-hero action-hero registration-hero">
+        <div class="action-copy reveal">
           <p class="eyebrow">Registration</p>
           <h1>Registration Form</h1>
-          <p>This year, Chamber and Choir registration are combined into one form.</p>
-          <a class="button primary" href="https://forms.gle/5VMaoBipV2Zfk9Tr8">Click here to register</a>
+          <p class="lead">Chamber and Choir registration are combined into one form for this season.</p>
+          <div class="cta-inline">
+            <a class="button primary" href="https://forms.gle/5VMaoBipV2Zfk9Tr8">Click here to register</a>
+            <a class="button ghost-dark" href="https://forms.gle/5VMaoBipV2Zfk9Tr8">Open Google Form</a>
+          </div>
           <p><a class="text-link" href="https://forms.gle/5VMaoBipV2Zfk9Tr8">https://forms.gle/5VMaoBipV2Zfk9Tr8</a></p>
         </div>
-        ${registrationImage ? imageCard(registrationImage, "NWCC chamber and choir") : ""}
+        <figure class="qr-panel reveal">
+          ${registrationImage ? `<img src="${esc(registrationImage)}" alt="NWCC registration QR code" loading="lazy">` : ""}
+          <figcaption>Scan to register</figcaption>
+        </figure>
       </section>`,
   }));
 
@@ -696,26 +723,27 @@ function buildSimplePages() {
     rel: "donation.html",
     title: "Donation | NWCC",
     body: `
-      <section class="simple-hero">
-        <div>
+      <section class="simple-hero action-hero donation-hero">
+        <div class="action-copy reveal">
           <p class="eyebrow">Donation</p>
           <h1>Support NWCC</h1>
-          <p>We accept donation through Zelle.</p>
-          <p>Thank you for your generous donation!</p>
+          <p class="lead">We accept donations through Zelle. Thank you for supporting music education and community service.</p>
         </div>
-        ${zelleImage ? imageCard(zelleImage, "NWCC Zelle donation information") : ""}
+        <figure class="qr-panel zelle-panel reveal">
+          ${zelleImage ? `<img src="${esc(zelleImage)}" alt="NWCC Zelle donation QR code" loading="lazy">` : ""}
+          <figcaption>Thank you for your generous donation.</figcaption>
+        </figure>
       </section>`,
   }));
 
-  const teamLines = cleanLines("teammembers.html");
-  const names = [
-    ["Education Team", "Jeongwon Hyun", "Education Program Development"],
-    ["Enrichment Team", "Ashley Sim", "Enrichment Lead"],
-    ["Technology Team", "Tom Wang", "Website Developer"],
-    ["Chamber Team", "YongWoon Chung", "Conductor"],
-    ["Choir Team", "Sim", "Choir Instructor"],
-  ];
   const teamImages = nonLogoImages("teammembers.html");
+  const team = [
+    ["Chamber Team", "YongWoon Chung", "Conductor", teamImages[3]?.src],
+    ["Education Team", "Jeongwon Hyun", "Education Program Development", teamImages[0]?.src],
+    ["Choir Team", "Sim", "Choir Instructor", teamImages[4]?.src],
+    ["Enrichment Team", "Ashley Sim", "Enrichment Lead", teamImages[1]?.src],
+    ["Technology Team", "Tom Wang", "Website Developer", teamImages[2]?.src],
+  ];
   write("teammembers.html", shell({
     rel: "teammembers.html",
     title: "Team | NWCC",
@@ -723,17 +751,25 @@ function buildSimplePages() {
       <section class="page-title">
         <p class="eyebrow">Teams</p>
         <h1>Dedication. Expertise. Passion.</h1>
+        <p>Meet the people supporting NWCC programs across chamber, choir, enrichment, education, and technology.</p>
       </section>
-      <section class="section people-grid">${names.map((person, index) => `
-        <article class="person-card reveal">
-          ${teamImages[index] ? `<img src="${esc(teamImages[index].src)}" alt="${esc(person[1])}" loading="lazy">` : ""}
-          <p class="eyebrow">${esc(person[0])}</p>
-          <h2>${esc(person[1])}</h2>
-          <p>${esc(person[2])}</p>
+      <section class="section team-grid">${team.map((person) => `
+        <article class="team-card person-card reveal">
+          ${person[3] ? `<img src="${esc(person[3])}" alt="${esc(person[1])}" loading="lazy">` : `<div class="person-initials">${esc(person[1].split(" ").map((part) => part[0]).join(""))}</div>`}
+          <div>
+            <p class="eyebrow">${esc(person[0])}</p>
+            <h2>${esc(person[1])}</h2>
+            <p>${esc(person[2])}</p>
+          </div>
         </article>`).join("")}</section>`,
   }));
 
-  const boardImages = nonLogoImages("team-3.html");
+  const boardImages = nonLogoImages("team-3.html").filter((img) => !/placeholder|w_1,h_1/i.test(img.src));
+  const board = [
+    ["YongWoon Chung", "President", boardImages[0]?.src],
+    ["Jeongwon Hyun", "Vice President", boardImages[1]?.src],
+    ["Shelley Choi", "Treasurer", ""],
+  ];
   write("team-3.html", shell({
     rel: "team-3.html",
     title: "Board of Directors | NWCC",
@@ -741,11 +777,15 @@ function buildSimplePages() {
       <section class="page-title">
         <p class="eyebrow">Leadership</p>
         <h1>Board of Directors</h1>
+        <p>NWCC board leadership supports the organization, programs, and community partnerships.</p>
       </section>
-      <section class="section people-grid">${boardImages.map((img, index) => `
-        <article class="person-card reveal">
-          <img src="${esc(img.src)}" alt="${esc(img.alt || `Board director ${index + 1}`)}" loading="lazy">
-          <h2>Board Director</h2>
+      <section class="section board-grid">${board.map((person) => `
+        <article class="board-card person-card reveal">
+          ${person[2] ? `<img src="${esc(person[2])}" alt="${esc(person[0])}" loading="lazy">` : `<div class="person-initials">SC</div>`}
+          <div>
+            <h2>${esc(person[0])}</h2>
+            <p>${esc(person[1])}</p>
+          </div>
         </article>`).join("")}</section>`,
   }));
 

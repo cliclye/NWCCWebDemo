@@ -18,19 +18,34 @@
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
     <nav class="site-nav" id="site-nav" aria-label="Primary navigation">
       <a class="nav-link" href="index.html">Home</a><a class="nav-link" href="announcements.html">Announcements</a><a class="nav-link" href="about-us.html">About</a><a class="nav-link" href="projects.html">Performances</a><a class="nav-link" href="gallery.html">Gallery</a><a class="nav-link" href="contact-us.html">Contact</a>
+      <div class="nav-more">
+        <button class="nav-more-toggle" type="button" aria-expanded="false" aria-haspopup="true">
+          <span>More</span>
+          <span aria-hidden="true">v</span>
+        </button>
+        <div class="nav-dropdown" role="menu">
+          <a class="nav-dropdown-link" href="announcements.html"><span>Announcements</span><small>Updates, newsletters, and program notes</small></a><a class="nav-dropdown-link" href="about-us.html"><span>About Us</span><small>Mission, equity work, and NWCC story</small></a><a class="nav-dropdown-link" href="team-3.html"><span>Board of Directors</span><small>President, vice president, and treasurer</small></a><a class="nav-dropdown-link" href="teammembers.html"><span>Team</span><small>Program, teaching, technology, chamber, and choir</small></a><a class="nav-dropdown-link active" href="registration.html"><span>Registration</span><small>Combined chamber and choir signup</small></a><a class="nav-dropdown-link" href="donation.html"><span>Donation</span><small>Support NWCC through Zelle</small></a>
+        </div>
+      </div>
     </nav>
   </header>
   <main>
 
-      <section class="simple-hero">
-        <div>
+      <section class="simple-hero action-hero registration-hero">
+        <div class="action-copy reveal">
           <p class="eyebrow">Registration</p>
           <h1>Registration Form</h1>
-          <p>This year, Chamber and Choir registration are combined into one form.</p>
-          <a class="button primary" href="https://forms.gle/5VMaoBipV2Zfk9Tr8">Click here to register</a>
+          <p class="lead">Chamber and Choir registration are combined into one form for this season.</p>
+          <div class="cta-inline">
+            <a class="button primary" href="https://forms.gle/5VMaoBipV2Zfk9Tr8">Click here to register</a>
+            <a class="button ghost-dark" href="https://forms.gle/5VMaoBipV2Zfk9Tr8">Open Google Form</a>
+          </div>
           <p><a class="text-link" href="https://forms.gle/5VMaoBipV2Zfk9Tr8">https://forms.gle/5VMaoBipV2Zfk9Tr8</a></p>
         </div>
-        <figure class="image-card"><img src="https://static.wixstatic.com/media/d6d5ff_49662b598d154cb896b5e8e267deaf8b~mv2.png/v1/fill/w_232,h_231,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/d6d5ff_49662b598d154cb896b5e8e267deaf8b~mv2.png" alt="NWCC chamber and choir" loading="lazy"></figure>
+        <figure class="qr-panel reveal">
+          <img src="https://static.wixstatic.com/media/d6d5ff_49662b598d154cb896b5e8e267deaf8b~mv2.png/v1/fill/w_232,h_231,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/d6d5ff_49662b598d154cb896b5e8e267deaf8b~mv2.png" alt="NWCC registration QR code" loading="lazy">
+          <figcaption>Scan to register</figcaption>
+        </figure>
       </section>
   </main>
   <footer class="site-footer">
