@@ -8,12 +8,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const navDropdownGroup = document.querySelector(".nav-dropdown-group");
   const navDropdownToggle = document.querySelector(".nav-dropdown-toggle");
+  const supportsHoverDropdown = window.matchMedia("(hover: hover) and (pointer: fine)");
+  let navDropdownCloseTimer;
   function setNavDropdownOpen(open) {
+    window.clearTimeout(navDropdownCloseTimer);
     navDropdownGroup?.classList.toggle("is-open", open);
     navDropdownToggle?.setAttribute("aria-expanded", String(open));
   }
+  function closeNavDropdownSoon() {
+    window.clearTimeout(navDropdownCloseTimer);
+    navDropdownCloseTimer = window.setTimeout(() => setNavDropdownOpen(false), 120);
+  }
+  navDropdownGroup?.addEventListener("pointerenter", () => {
+    if (supportsHoverDropdown.matches) setNavDropdownOpen(true);
+  });
+  navDropdownGroup?.addEventListener("pointerleave", () => {
+    if (supportsHoverDropdown.matches) closeNavDropdownSoon();
+  });
+  navDropdownGroup?.addEventListener("focusin", () => setNavDropdownOpen(true));
+  navDropdownGroup?.addEventListener("focusout", (event) => {
+    if (!event.relatedTarget?.closest?.(".nav-dropdown-group")) setNavDropdownOpen(false);
+  });
   navDropdownToggle?.addEventListener("click", (event) => {
     event.stopPropagation();
+    if (supportsHoverDropdown.matches) {
+      setNavDropdownOpen(true);
+      return;
+    }
     setNavDropdownOpen(!navDropdownGroup?.classList.contains("is-open"));
   });
   document.addEventListener("click", (event) => {
